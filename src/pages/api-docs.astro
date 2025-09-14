@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { ApiDocsPage } from '../components/ApiDocsPage.tsx';
+---
+<Layout title="Documentación API">
+  
+  <main>
+    <ApiDocsPage client:load />
+  </main>
+
+</Layout>

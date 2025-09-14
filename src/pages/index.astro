@@ -1,0 +1,21 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { HomePageContent } from '../components/HomePageContent.tsx';
+---
+<Layout title="Observatorio Ambiental">
+  
+  <main class="max-w-7xl mx-auto px-6 py-12 pt-32">
+    <!-- Hero Section (estática) -->
+    <div class="text-center mb-16">
+      <h1 class="text-4xl font-bold text-gray-900 mb-4 text-balance">Monitoreo Ambiental Inteligente</h1>
+      <p class="text-lg text-gray-600 max-w-3xl mx-auto text-pretty">
+        Plataforma integral para visualizar, analizar y predecir datos ambientales.
+      </p>
+    </div>
+
+    <!-- Contenido Principal (React) -->
+    <HomePageContent client:load />
+
+  </main>
+  
+</Layout>

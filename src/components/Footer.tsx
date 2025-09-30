@@ -53,7 +53,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2 text-gray-300">
                 <Phone className="w-4 h-4" />
-                +1 (555) 123-4567
+                +56 9 1234 5678
               </li>
               <li className="flex items-center gap-2 text-gray-300">
                 <MapPin className="w-4 h-4" />
@@ -64,7 +64,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 Observatorio Ambiental. Todos los derechos reservados.</p>
+          <p>&copy; 2025 Observatorio Ambiental. Todos los derechos reservados.</p>
         </div>
       </div>
     </footer>

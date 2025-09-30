@@ -1,9 +1,10 @@
+// src/components/HomePageContent.tsx
 import { useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { MapPin, BarChart3 } from "lucide-react";
 import { PricingCard } from "./PricingCard";
 
-// CAMBIO: Definimos un tipo para los planes que coincide con las Props del PricingCard
+// ... (El type Plan y el array pricingPlans se mantienen igual, no es necesario cambiarlo)
 type Plan = {
   title: string;
   price: string;
@@ -13,8 +14,6 @@ type Plan = {
   popular?: boolean;
   buttonVariant?: "default" | "outline";
 };
-
-// Se aplica el nuevo tipo al array de planes
 const pricingPlans: Plan[] = [
   {
     title: "Gratuito", price: "$0", description: "Plan básico",
@@ -41,8 +40,8 @@ const pricingPlans: Plan[] = [
   },
 ];
 
+
 export function HomePageContent() {
-  // Lógica para el scroll suave
   useEffect(() => {
     if (window.location.hash === "#precios-section") {
       setTimeout(() => {
@@ -56,6 +55,32 @@ export function HomePageContent() {
 
   return (
     <>
+      {/* =============================================== */}
+      {/* == SECCIÓN "POR QUÉ DEL PROYECTO" - INICIO == */}
+      {/* =============================================== */}
+      <div className="text-center mb-20">
+        <h2 className="text-3xl font-bold text-gray-900 mb-4">El Problema y Nuestra Misión</h2>
+        <p className="text-lg text-gray-600 max-w-4xl mx-auto">
+          En Chile, el acceso a datos ambientales consolidados es limitado y fragmentado. Nuestra misión es democratizar esta información, proporcionando una plataforma centralizada y fácil de usar para que ciudadanos, investigadores y organizaciones puedan monitorear, analizar y comprender la calidad de nuestro entorno.
+        </p>
+      </div>
+      {/* ============================================= */}
+      {/* == SECCIÓN "POR QUÉ DEL PROYECTO" - FIN == */}
+      {/* ============================================= */}
+
+      {/* ======================================== */}
+      {/* == SECCIÓN "CONÓCENOS" - INICIO == */}
+      {/* ======================================== */}
+      <div className="text-center mb-20">
+        <h2 className="text-3xl font-bold text-gray-900 mb-4">Quiénes Somos</h2>
+        <p className="text-lg text-gray-600 max-w-4xl mx-auto">
+          Somos un equipo de estudiantes apasionados por la tecnología y el medio ambiente. Este proyecto nace como nuestro Capstone, con el objetivo de aplicar nuestras habilidades en desarrollo de software para crear una herramienta de impacto positivo, promoviendo la transparencia y la conciencia ambiental en el país.
+        </p>
+      </div>
+      {/* ====================================== */}
+      {/* == SECCIÓN "CONÓCENOS" - FIN == */}
+      {/* ====================================== */}
+
       {/* Feature Cards */}
       <div className="grid md:grid-cols-2 gap-8 mb-20">
         <a href="/mapa-interactivo">

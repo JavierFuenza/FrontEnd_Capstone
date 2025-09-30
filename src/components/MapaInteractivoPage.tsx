@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, MapPin, Filter, Wind, Droplets } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Map } from './Map'; // Importa el componente del mapa
 
 // Mock data
 const cities = [
@@ -126,20 +127,8 @@ export function MapaInteractivoPage() {
                         <Card>
                             <CardHeader><CardTitle className="text-xl">Mapa de Chile</CardTitle></CardHeader>
                             <CardContent>
-                                <div className="relative w-full h-80 bg-gradient-to-b from-blue-100 to-green-100 rounded-lg overflow-hidden">
-                                    {cities.map((city) => (
-                                        <div
-                                            key={city.id}
-                                            onClick={() => handleCityClick(city)}
-                                            className={`absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 ${selectedCity?.id === city.id ? "bg-emerald-600 text-white" : "bg-white text-gray-700 hover:bg-emerald-50"} px-3 py-2 rounded-lg shadow-md transition-all duration-200 border`}
-                                            style={{ left: `${((city.lng + 75) / 15) * 100}%`, top: `${((city.lat + 45) / 25) * 100}%` }}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <MapPin className="w-4 h-4" />
-                                                <span className="text-sm font-medium">{city.name}</span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className="h-96 w-full rounded-lg overflow-hidden">
+                                    <Map />
                                 </div>
                             </CardContent>
                         </Card>

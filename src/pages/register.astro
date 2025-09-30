@@ -1,0 +1,9 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { RegisterPage } from '../components/RegisterPage.tsx';
+---
+<Layout title="Registro">
+  <main>
+    <RegisterPage client:load />
+  </main>
+</Layout>

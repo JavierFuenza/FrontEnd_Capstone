@@ -6,17 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, MapPin, Filter, Wind, Droplets } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Map } from './Map'; // Importa el componente del mapa
+import { Map } from './Map';
 
-// Mock data
-const cities = [
-    { id: 1, name: "Santiago", region: "Metropolitana", lat: -33.4489, lng: -70.6693 },
-    { id: 2, name: "Valparaíso", region: "Valparaíso", lat: -33.0472, lng: -71.6127 },
-    { id: 3, name: "Concepción", region: "Bío Bío", lat: -36.8201, lng: -73.0444 },
-    { id: 4, name: "La Serena", region: "Coquimbo", lat: -29.9027, lng: -71.2519 },
-    { id: 5, name: "Antofagasta", region: "Antofagasta", lat: -23.6509, lng: -70.3975 },
-    { id: 6, name: "Temuco", region: "Araucanía", lat: -38.7359, lng: -72.5904 },
-];
+interface Estacion {
+    id: number;
+    nombre: string;
+    latitud: number;
+    longitud: number;
+    descripcion: string;
+    created_at: string;
+}
+
+// Mock data para gráficos (temporal)
 const temperatureData = [
     { date: "2024-09", temp: 18 }, { date: "2024-10", temp: 17 }, { date: "2024-11", temp: 22 },
     { date: "2024-12", temp: 25 }, { date: "2025-01", temp: 28 }, { date: "2025-02", temp: 31 },
@@ -27,22 +28,52 @@ const temperatureData = [
 
 export function MapaInteractivoPage() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCity, setSelectedCity] = useState<(typeof cities)[0] | null>(cities[0]);
+    const [estaciones, setEstaciones] = useState<Estacion[]>([]);
+    const [filteredEstaciones, setFilteredEstaciones] = useState<Estacion[]>([]);
+    const [selectedEstacion, setSelectedEstacion] = useState<Estacion | null>(null);
     const [activeFilter, setActiveFilter] = useState("Aire");
-    const [filteredCities, setFilteredCities] = useState(cities);
     const [airFilter, setAirFilter] = useState("temperatura-maxima");
     const [waterFilter, setWaterFilter] = useState("ph");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
+    // Fetch estaciones desde el backend
     useEffect(() => {
-        const filtered = cities.filter(city =>
-            city.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            city.region.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        setFilteredCities(filtered);
-    }, [searchTerm]);
+        const fetchEstaciones = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch('http://localhost:8000/api/private/estaciones/');
+                if (!response.ok) {
+                    throw new Error('Error al cargar estaciones');
+                }
+                const data = await response.json();
+                setEstaciones(data);
+                setFilteredEstaciones(data);
+                if (data.length > 0) {
+                    setSelectedEstacion(data[0]);
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Error desconocido');
+                console.error('Error fetching estaciones:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const handleCityClick = (city: (typeof cities)[0]) => {
-        setSelectedCity(city);
+        fetchEstaciones();
+    }, []);
+
+    // Filtrar estaciones por búsqueda
+    useEffect(() => {
+        const filtered = estaciones.filter(estacion =>
+            estacion.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            estacion.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setFilteredEstaciones(filtered);
+    }, [searchTerm, estaciones]);
+
+    const handleEstacionClick = (estacion: Estacion) => {
+        setSelectedEstacion(estacion);
     };
 
     return (
@@ -55,31 +86,47 @@ export function MapaInteractivoPage() {
                             <CardHeader className="pb-3">
                                 <div className="flex items-center gap-2">
                                     <Search className="w-5 h-5 text-gray-500" />
-                                    <CardTitle className="text-lg">Buscar Ubicación</CardTitle>
+                                    <CardTitle className="text-lg">Buscar Estación</CardTitle>
                                 </div>
                             </CardHeader>
                             <CardContent>
                                 <Input
-                                    placeholder="Buscar ciudad o comuna..."
+                                    placeholder="Buscar estación..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="mb-4"
                                 />
-                                <div className="space-y-2 max-h-64 overflow-y-auto">
-                                    {filteredCities.map((city) => (
-                                        <div
-                                            key={city.id}
-                                            onClick={() => handleCityClick(city)}
-                                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedCity?.id === city.id ? "bg-emerald-100 border border-emerald-200" : "hover:bg-gray-100"}`}
-                                        >
-                                            <MapPin className="w-4 h-4 text-gray-500" />
-                                            <div>
-                                                <div className="font-medium text-gray-900">{city.name}</div>
-                                                <div className="text-sm text-gray-500">{city.region}</div>
+                                {loading ? (
+                                    <div className="text-center py-4 text-gray-500">
+                                        Cargando estaciones...
+                                    </div>
+                                ) : error ? (
+                                    <div className="text-center py-4 text-red-500">
+                                        {error}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                                        {filteredEstaciones.length === 0 ? (
+                                            <div className="text-center py-4 text-gray-500">
+                                                No se encontraron estaciones
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ) : (
+                                            filteredEstaciones.map((estacion) => (
+                                                <div
+                                                    key={estacion.id}
+                                                    onClick={() => handleEstacionClick(estacion)}
+                                                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedEstacion?.id === estacion.id ? "bg-emerald-100 border border-emerald-200" : "hover:bg-gray-100"}`}
+                                                >
+                                                    <MapPin className="w-4 h-4 text-emerald-600" />
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">{estacion.nombre}</div>
+                                                        <div className="text-sm text-gray-500">{estacion.descripcion}</div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                         <Card>
@@ -128,14 +175,20 @@ export function MapaInteractivoPage() {
                             <CardHeader><CardTitle className="text-xl">Mapa de Chile</CardTitle></CardHeader>
                             <CardContent>
                                 <div className="h-96 w-full rounded-lg overflow-hidden">
-                                    <Map />
+                                    {loading ? (
+                                        <div className="flex items-center justify-center h-full bg-gray-100">
+                                            <p className="text-gray-500">Cargando mapa...</p>
+                                        </div>
+                                    ) : (
+                                        <Map estaciones={estaciones} selectedEstacion={selectedEstacion} />
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
-                        {selectedCity && (
+                        {selectedEstacion && (
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="text-lg">Datos de {selectedCity.name}</CardTitle>
+                                    <CardTitle className="text-lg">Datos de {selectedEstacion.nombre}</CardTitle>
                                     <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-sm font-medium">{activeFilter}</span>
                                 </CardHeader>
                                 <CardContent>

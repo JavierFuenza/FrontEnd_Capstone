@@ -2,7 +2,7 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect } from 'react';
-import L from 'leaflet'; // <-- 1. Importa 'L' de leaflet
+import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
@@ -14,41 +14,70 @@ let DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
-// --- FIN DEL CÓDIGO NUEVO ---
 
+const center: [number, number] = [-39.8142, -73.2459];
 
-const center: [number, number] = [-39.8142, -73.2459]; 
-const markers = [
-  { position: [-33.4489, -70.6693], name: "Santiago" },
-  { position: [-33.0472, -71.6127], name: "Valparaíso" },
-  { position: [-36.8201, -73.0444], name: "Concepción" },
-];
+interface Estacion {
+  id: number;
+  nombre: string;
+  latitud: number;
+  longitud: number;
+  descripcion: string;
+}
 
-function MapUpdater() {
+interface MapProps {
+  estaciones: Estacion[];
+  selectedEstacion?: Estacion | null;
+}
+
+function MapUpdater({ selectedEstacion }: { selectedEstacion?: Estacion | null }) {
   const map = useMap();
+
   useEffect(() => {
     setTimeout(() => { map.invalidateSize(); }, 100);
   }, [map]);
+
+  useEffect(() => {
+    if (selectedEstacion) {
+      map.flyTo([selectedEstacion.latitud, selectedEstacion.longitud], 12, {
+        duration: 1.5
+      });
+    }
+  }, [selectedEstacion, map]);
+
   return null;
 }
 
-export function Map() {
+export function Map({ estaciones, selectedEstacion }: MapProps) {
   if (typeof window === 'undefined') {
     return null;
   }
+
   return (
-    <MapContainer center={center} zoom={5} style={{ height: '100%', width: '100%' }}>
+    <MapContainer
+      center={center}
+      zoom={5}
+      style={{ height: '100%', width: '100%' }}
+    >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
-      
-      {markers.map((marker, index) => (
-        <Marker key={index} position={marker.position as [number, number]}>
-          <Popup>{marker.name}</Popup>
+
+      {estaciones.map((estacion) => (
+        <Marker
+          key={estacion.id}
+          position={[estacion.latitud, estacion.longitud]}
+        >
+          <Popup>
+            <div className="text-sm">
+              <div className="font-bold">{estacion.nombre}</div>
+              <div className="text-gray-600">{estacion.descripcion}</div>
+            </div>
+          </Popup>
         </Marker>
       ))}
-      <MapUpdater />
+      <MapUpdater selectedEstacion={selectedEstacion} />
     </MapContainer>
   );
 }

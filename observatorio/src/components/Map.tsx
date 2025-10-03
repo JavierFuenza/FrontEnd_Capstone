@@ -3,11 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect } from 'react';
 import L from 'leaflet'; // <-- 1. Importa 'L' de leaflet
-
-// --- CÓDIGO NUEVO PARA CORREGIR ÍCONOS ---
-// @ts-ignore
 import icon from 'leaflet/dist/images/marker-icon.png';
-// @ts-ignore
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
 let DefaultIcon = L.icon({

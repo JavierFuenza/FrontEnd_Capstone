@@ -1,11 +1,7 @@
 ---
-import Layout from '../layouts/Layout.astro';
+import MapLayout from '../layouts/MapLayout.astro';
 import { MapaInteractivoPage } from '../components/MapaInteractivoPage.tsx';
 ---
-<Layout title="Mapa Interactivo">
-  
-  <main>
-    <MapaInteractivoPage client:only="react" />
-  </main>
-
-</Layout>
+<MapLayout title="Mapa Interactivo">
+  <MapaInteractivoPage client:only="react" />
+</MapLayout>

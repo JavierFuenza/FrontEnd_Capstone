@@ -22,51 +22,69 @@ export function NavBar() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4 fixed top-0 left-0 right-0 z-50">
-      <div className="max-w-7xl mx-auto grid grid-cols-3 items-center">
-        {/* Columna 1: Logo */}
-        <div className="justify-self-start">
-          <a href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
-              <Leaf className="w-6 h-6 text-white" />
+    <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm px-4 sm:px-6 py-3 fixed top-0 left-0 right-0 z-[9999]">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        {/* Logo - Responsivo */}
+        <div className="flex-shrink-0">
+          <a href="/" className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center shadow-md">
+              <Leaf className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">Observatorio Ambiental</h1>
-              <p className="text-sm text-gray-500">Datos ambientales en tiempo real</p>
+            <div className="hidden sm:block">
+              <h1 className="text-base sm:text-lg font-bold text-gray-900 leading-tight">Observatorio Ambiental</h1>
+              <p className="text-xs text-gray-500 leading-tight">Datos en tiempo real</p>
+            </div>
+            <div className="block sm:hidden">
+              <h1 className="text-sm font-bold text-gray-900">Observatorio</h1>
             </div>
           </a>
         </div>
 
-        {/* Columna 2: Navegación (centrada) */}
-        <nav className="hidden md:flex items-center gap-6 justify-self-center">
-          <a href="/mapa-interactivo" className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors">
-            <MapPin className="w-4 h-4" /> Mapa Interactivo
+        {/* Navegación Desktop - Centrada */}
+        <nav className="hidden lg:flex items-center gap-1">
+          <a
+            href="/mapa-interactivo"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+          >
+            <MapPin className="w-4 h-4" />
+            <span>Mapa</span>
           </a>
-          <a href="/graficos-personalizados" className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors">
-            <BarChart3 className="w-4 h-4" /> Gráficos
+          <a
+            href="/graficos-personalizados"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span>Gráficos</span>
           </a>
-          <a href="/api-docs" className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors">
-            <Code className="w-4 h-4" /> API
+          <a
+            href="/api-docs"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+          >
+            <Code className="w-4 h-4" />
+            <span>API</span>
           </a>
-          <button onClick={scrollToPrecios} className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors">
-            <DollarSign className="w-4 h-4" /> Precios
+          <button
+            onClick={scrollToPrecios}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+          >
+            <DollarSign className="w-4 h-4" />
+            <span>Precios</span>
           </button>
         </nav>
 
-        {/* ======================================= */}
-        {/* == Columna 3: Botones de Auth - INICIO == */}
-        {/* ======================================= */}
-        <div className="hidden md:flex justify-self-end items-center gap-2">
+        {/* Botones de Auth - Desktop */}
+        <div className="hidden md:flex items-center gap-2 flex-shrink-0">
           <a href="/login">
-            <Button variant="outline" size="sm">Iniciar Sesión</Button>
+            <Button variant="outline" size="sm" className="text-sm font-medium">
+              Iniciar Sesión
+            </Button>
           </a>
           <a href="/register">
-            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">Registrarse</Button>
+            <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-sm font-medium shadow-sm">
+              Registrarse
+            </Button>
           </a>
         </div>
-        {/* ===================================== */}
-        {/* == Columna 3: Botones de Auth - FIN == */}
-        {/* ===================================== */}
 
 
         {/* Menú Móvil */}
@@ -79,17 +97,52 @@ export function NavBar() {
         </button>
       </div>
 
-      {/* Panel del Menú Móvil (Aquí también puedes agregar los botones si lo deseas) */}
+      {/* Panel del Menú Móvil */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200 px-6 py-4">
-          <nav className="flex flex-col gap-4">
-            {/* ... enlaces del menú móvil ... */}
-            <div className="flex flex-col gap-2 pt-4 border-t">
-               <a href="/login">
-                <Button variant="outline" className="w-full">Iniciar Sesión</Button>
+        <div className="lg:hidden bg-white/98 border-t border-gray-200 px-6 py-5 shadow-lg relative z-[9999]">
+          <nav className="flex flex-col gap-2">
+            <a
+              href="/mapa-interactivo"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+            >
+              <MapPin className="w-4 h-4" />
+              <span>Mapa Interactivo</span>
+            </a>
+            <a
+              href="/graficos-personalizados"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Gráficos Personalizados</span>
+            </a>
+            <a
+              href="/api-docs"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+            >
+              <Code className="w-4 h-4" />
+              <span>Documentación API</span>
+            </a>
+            <button
+              onClick={scrollToPrecios}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+            >
+              <DollarSign className="w-4 h-4" />
+              <span>Precios</span>
+            </button>
+
+            <div className="flex flex-col gap-2 pt-4 mt-2 border-t border-gray-200">
+              <a href="/login">
+                <Button variant="outline" size="sm" className="w-full text-sm font-medium">
+                  Iniciar Sesión
+                </Button>
               </a>
               <a href="/register">
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700">Registrarse</Button>
+                <Button size="sm" className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-sm font-medium shadow-sm">
+                  Registrarse
+                </Button>
               </a>
             </div>
           </nav>

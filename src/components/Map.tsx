@@ -1,5 +1,5 @@
 // src/components/Map.tsx
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect } from 'react';
 import L from 'leaflet';
@@ -23,11 +23,14 @@ interface Estacion {
   latitud: number;
   longitud: number;
   descripcion: string;
+  created_at: string;
 }
 
 interface MapProps {
   estaciones: Estacion[];
   selectedEstacion?: Estacion | null;
+  onEstacionSelect?: (estacion: Estacion) => void;
+  showZoomControls?: boolean;
 }
 
 function MapUpdater({ selectedEstacion }: { selectedEstacion?: Estacion | null }) {
@@ -48,7 +51,7 @@ function MapUpdater({ selectedEstacion }: { selectedEstacion?: Estacion | null }
   return null;
 }
 
-export function Map({ estaciones, selectedEstacion }: MapProps) {
+export function Map({ estaciones, selectedEstacion, onEstacionSelect, showZoomControls = true }: MapProps) {
   if (typeof window === 'undefined') {
     return null;
   }
@@ -57,8 +60,11 @@ export function Map({ estaciones, selectedEstacion }: MapProps) {
     <MapContainer
       center={center}
       zoom={5}
+      zoomControl={false}
       style={{ height: '100%', width: '100%' }}
     >
+      {showZoomControls && <ZoomControl position="topright" />}
+
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -70,9 +76,19 @@ export function Map({ estaciones, selectedEstacion }: MapProps) {
           position={[estacion.latitud, estacion.longitud]}
         >
           <Popup>
-            <div className="text-sm">
-              <div className="font-bold">{estacion.nombre}</div>
-              <div className="text-gray-600">{estacion.descripcion}</div>
+            <div className="text-sm space-y-2">
+              <div>
+                <div className="font-bold">{estacion.nombre}</div>
+                <div className="text-gray-600">{estacion.descripcion}</div>
+              </div>
+              {onEstacionSelect && (
+                <button
+                  onClick={() => onEstacionSelect(estacion)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+                >
+                  Ver datos de calidad del aire
+                </button>
+              )}
             </div>
           </Popup>
         </Marker>

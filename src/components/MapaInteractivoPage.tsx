@@ -205,6 +205,41 @@ export function MapaInteractivoPage() {
         return { mean, min, max, median, count: values.length };
     };
 
+    // Función para calcular estadísticas de múltiples dataKeys
+    const calculateMultiStats = (data: any[], dataKeys: string[]) => {
+        return dataKeys.map(key => {
+            const stats = calculateStats(data, key);
+            return stats ? { dataKey: key, ...stats } : null;
+        }).filter(stat => stat !== null);
+    };
+
+    // Función para calcular el rango dinámico del eje Y
+    const getYAxisDomain = (data: any[], dataKeys: string[]) => {
+        let min = Infinity;
+        let max = -Infinity;
+
+        data.forEach(dataPoint => {
+            dataKeys.forEach(key => {
+                const value = dataPoint[key];
+                if (value !== null && value !== undefined && value !== '' && !isNaN(value)) {
+                    const numValue = Number(value);
+                    min = Math.min(min, numValue);
+                    max = Math.max(max, numValue);
+                }
+            });
+        });
+
+        if (min === Infinity || max === -Infinity) return undefined;
+
+        const range = max - min;
+        const padding = range * 0.1; // 10% de padding arriba y abajo
+
+        return [
+            Math.floor(min - padding),
+            Math.ceil(max + padding)
+        ];
+    };
+
     // Función para agrupar datos mensuales por año
     const aggregateByYear = (data: any[], dataKeys: string[]) => {
         const yearGroups: { [key: string]: any } = {};
@@ -286,8 +321,8 @@ export function MapaInteractivoPage() {
             setChartViews(prev => ({ ...prev, [chartKey]: view }));
         };
 
-        // Calcular estadísticas para el primer dataKey (principal)
-        const stats = calculateStats(displayData, dataKeys[0]);
+        // Calcular estadísticas para todos los dataKeys
+        const allStats = calculateMultiStats(displayData, dataKeys);
         const totalRecords = displayData.length;
 
         // Determinar tipo de gráfico
@@ -304,7 +339,7 @@ export function MapaInteractivoPage() {
             title,
             xAxisKey: displayXAxisKey,
             unit,
-            stats
+            allStats
         };
 
         // Tooltip personalizado con más información
@@ -343,74 +378,95 @@ export function MapaInteractivoPage() {
                         </Button>
                     </div>
 
-                    {/* Botón para mostrar/ocultar estadísticas */}
-                    {stats && (
-                        <div className="mt-3">
+                    {/* Controles: Estadísticas y Vista Temporal */}
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
+                        {/* Botón para mostrar/ocultar estadísticas */}
+                        {allStats.length > 0 && (
                             <Button
                                 variant={statsVisible[chartKey] ? "secondary" : "outline"}
                                 size="sm"
-                                className="text-xs h-8 px-3 border-dashed hover:border-solid transition-all"
+                                className="text-xs h-8 px-2.5 border-dashed hover:border-solid transition-all flex-shrink"
                                 onClick={() => setStatsVisible(prev => ({ ...prev, [chartKey]: !prev[chartKey] }))}
                             >
                                 <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
-                                {statsVisible[chartKey] ? 'Ocultar análisis estadístico' : 'Ver análisis estadístico'}
-                                <Info className="w-3 h-3 ml-1.5 text-gray-400" />
+                                <span className="whitespace-nowrap">
+                                    {statsVisible[chartKey] ? 'Ocultar análisis' : 'Ver análisis'}
+                                </span>
                             </Button>
+                        )}
 
-                            {/* Estadísticas descriptivas colapsables */}
-                            {statsVisible[chartKey] && (
-                                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 animate-in fade-in duration-200">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <TrendingUp className="w-4 h-4 text-emerald-600" />
-                                        <span className="text-xs font-semibold text-gray-700">Análisis Estadístico</span>
-                                        <Badge variant="secondary" className="text-xs ml-auto">
-                                            {totalRecords} registros
-                                        </Badge>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 text-xs">
-                                        <Badge variant="outline" className="bg-blue-50 border-blue-200">
-                                            <span className="font-medium">Promedio:</span>
-                                            <span className="ml-1 font-bold">{stats.mean.toFixed(2)}{unit}</span>
-                                        </Badge>
-                                        <Badge variant="outline" className="bg-green-50 border-green-200">
-                                            <span className="font-medium">Máximo:</span>
-                                            <span className="ml-1 font-bold">{stats.max.toFixed(2)}{unit}</span>
-                                        </Badge>
-                                        <Badge variant="outline" className="bg-orange-50 border-orange-200">
-                                            <span className="font-medium">Mínimo:</span>
-                                            <span className="ml-1 font-bold">{stats.min.toFixed(2)}{unit}</span>
-                                        </Badge>
-                                        <Badge variant="outline" className="bg-purple-50 border-purple-200">
-                                            <span className="font-medium">Mediana:</span>
-                                            <span className="ml-1 font-bold">{stats.median.toFixed(2)}{unit}</span>
-                                        </Badge>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                        {/* Selector de vista temporal */}
+                        {shouldShowTemporalSwitch && (
+                            <button
+                                onClick={() => toggleView(currentView === 'mensual' ? 'anual' : 'mensual')}
+                                className="relative inline-flex h-8 w-28 items-center rounded-full bg-gray-200 transition-colors hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 flex-shrink-0"
+                            >
+                                <span
+                                    className={`inline-flex h-7 w-14 items-center justify-center rounded-full bg-white shadow-md transform transition-transform duration-300 ease-in-out ${
+                                        currentView === 'anual' ? 'translate-x-[52px]' : 'translate-x-0.5'
+                                    }`}
+                                >
+                                    <span className="text-xs font-semibold text-gray-900">
+                                        {currentView === 'mensual' ? 'Mensual' : 'Anual'}
+                                    </span>
+                                </span>
+                                <span className="absolute left-1.5 text-xs font-medium text-gray-600 pointer-events-none">
+                                    {currentView === 'mensual' ? '' : 'Mensual'}
+                                </span>
+                                <span className="absolute right-2 text-xs font-medium text-gray-600 pointer-events-none">
+                                    {currentView === 'anual' ? '' : 'Anual'}
+                                </span>
+                            </button>
+                        )}
+                    </div>
 
-                    {/* Selector de vista temporal */}
-                    {shouldShowTemporalSwitch && (
-                        <div className="flex gap-2 mt-3">
-                            <Button
-                                variant={currentView === 'mensual' ? 'default' : 'outline'}
-                                size="sm"
-                                className="text-xs h-7"
-                                onClick={() => toggleView('mensual')}
-                            >
-                                <Calendar className="w-3 h-3 mr-1" />
-                                Vista Mensual
-                            </Button>
-                            <Button
-                                variant={currentView === 'anual' ? 'default' : 'outline'}
-                                size="sm"
-                                className="text-xs h-7"
-                                onClick={() => toggleView('anual')}
-                            >
-                                <Calendar className="w-3 h-3 mr-1" />
-                                Vista Anual
-                            </Button>
+                    {/* Estadísticas descriptivas colapsables */}
+                    {allStats.length > 0 && statsVisible[chartKey] && (
+                        <div className="mt-3 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200 animate-in fade-in duration-200">
+                            <div className="flex items-center gap-2 mb-3">
+                                <TrendingUp className="w-4 h-4 text-emerald-600" />
+                                <span className="text-xs font-semibold text-gray-700">Análisis Estadístico Detallado</span>
+                                <Badge variant="secondary" className="text-xs ml-auto">
+                                    {totalRecords} registros
+                                </Badge>
+                            </div>
+                            <div className="space-y-3">
+                                {allStats.map((stat: any, idx: number) => {
+                                    const labelIndex = dataKeys.indexOf(stat.dataKey);
+                                    const label = labels[labelIndex] || stat.dataKey;
+                                    const color = colors[labelIndex] || '#6b7280';
+
+                                    return (
+                                        <div key={stat.dataKey} className="bg-white rounded-md p-3 shadow-sm border border-gray-200">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div
+                                                    className="w-3 h-3 rounded-full"
+                                                    style={{ backgroundColor: color }}
+                                                />
+                                                <span className="text-xs font-semibold text-gray-800">{label}</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <Badge variant="outline" className="bg-blue-50 border-blue-200 justify-between">
+                                                    <span className="font-medium">Promedio:</span>
+                                                    <span className="font-bold">{stat.mean.toFixed(2)}{unit}</span>
+                                                </Badge>
+                                                <Badge variant="outline" className="bg-purple-50 border-purple-200 justify-between">
+                                                    <span className="font-medium">Mediana:</span>
+                                                    <span className="font-bold">{stat.median.toFixed(2)}{unit}</span>
+                                                </Badge>
+                                                <Badge variant="outline" className="bg-green-50 border-green-200 justify-between">
+                                                    <span className="font-medium">Máximo:</span>
+                                                    <span className="font-bold">{stat.max.toFixed(2)}{unit}</span>
+                                                </Badge>
+                                                <Badge variant="outline" className="bg-orange-50 border-orange-200 justify-between">
+                                                    <span className="font-medium">Mínimo:</span>
+                                                    <span className="font-bold">{stat.min.toFixed(2)}{unit}</span>
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </CardHeader>
@@ -430,6 +486,7 @@ export function MapaInteractivoPage() {
                                 height={60}
                             />
                             <YAxis
+                                domain={getYAxisDomain(displayData, dataKeys)}
                                 tick={{ fontSize: 11 }}
                                 label={yAxisLabel ? {
                                     value: yAxisLabel,
@@ -446,7 +503,21 @@ export function MapaInteractivoPage() {
                                 iconType="line"
                                 verticalAlign="top"
                             />
-                            {stats && statsVisible[chartKey] && <ReferenceLine y={stats.mean} stroke="#9ca3af" strokeDasharray="5 5" label={{ value: 'Media', position: 'right', fontSize: 10, fill: '#6b7280' }} />}
+                            {allStats.length > 0 && statsVisible[chartKey] && allStats.map((stat: any, idx: number) => (
+                                <ReferenceLine
+                                    key={`ref-${stat.dataKey}`}
+                                    y={stat.mean}
+                                    stroke={colors[dataKeys.indexOf(stat.dataKey)]}
+                                    strokeDasharray="5 5"
+                                    strokeOpacity={0.5}
+                                    label={{
+                                        value: `Media ${labels[dataKeys.indexOf(stat.dataKey)]}`,
+                                        position: idx % 2 === 0 ? 'right' : 'left',
+                                        fontSize: 9,
+                                        fill: colors[dataKeys.indexOf(stat.dataKey)]
+                                    }}
+                                />
+                            ))}
                             {dataKeys.map((dataKey, index) => {
                                 const hasData = displayData.some(item =>
                                     item[dataKey] !== null && item[dataKey] !== undefined && item[dataKey] !== ''
@@ -568,7 +639,7 @@ export function MapaInteractivoPage() {
                                 <ChartComponent data={validData}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-                                    <YAxis tick={{ fontSize: 12 }} label={{ value: yAxisLabel, angle: -90, position: 'insideLeft' }} />
+                                    <YAxis domain={getYAxisDomain(validData, dataKeys)} tick={{ fontSize: 12 }} label={{ value: yAxisLabel, angle: -90, position: 'insideLeft' }} />
                                     <Tooltip />
                                     <Legend />
                                     {dataKeys.map((dataKey, index) => {
@@ -1013,10 +1084,10 @@ export function MapaInteractivoPage() {
                     onClick={() => setExpandedChart(null)}
                 >
                     <div
-                        className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300"
+                        className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-300"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between p-6 border-b">
+                        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
                             <h3 className="text-2xl font-bold">{expandedChart.config.title}</h3>
                             <Button
                                 variant="ghost"
@@ -1037,6 +1108,7 @@ export function MapaInteractivoPage() {
                                             tick={{ fontSize: 14 }}
                                         />
                                         <YAxis
+                                            domain={getYAxisDomain(expandedChart.data, expandedChart.config.dataKeys)}
                                             tick={{ fontSize: 14 }}
                                             label={{
                                                 value: expandedChart.config.yAxisLabel,
@@ -1071,6 +1143,7 @@ export function MapaInteractivoPage() {
                                             tick={{ fontSize: 14 }}
                                         />
                                         <YAxis
+                                            domain={getYAxisDomain(expandedChart.data, expandedChart.config.dataKeys)}
                                             tick={{ fontSize: 14 }}
                                             label={{
                                                 value: expandedChart.config.yAxisLabel,
@@ -1101,6 +1174,64 @@ export function MapaInteractivoPage() {
                                     </LineChart>
                                 )}
                             </ResponsiveContainer>
+
+                            {/* Análisis estadístico en modal expandido */}
+                            {expandedChart.config.allStats && expandedChart.config.allStats.length > 0 && (
+                                <div className="mt-8">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <TrendingUp className="w-5 h-5 text-emerald-600" />
+                                        <h4 className="text-lg font-semibold text-gray-800">Análisis Estadístico Detallado</h4>
+                                        <Badge variant="secondary" className="text-sm ml-auto">
+                                            {expandedChart.data.length} registros
+                                        </Badge>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {expandedChart.config.allStats.map((stat: any) => {
+                                            const labelIndex = expandedChart.config.dataKeys.indexOf(stat.dataKey);
+                                            const label = expandedChart.config.labels[labelIndex] || stat.dataKey;
+                                            const color = expandedChart.config.colors[labelIndex] || '#6b7280';
+
+                                            return (
+                                                <div key={stat.dataKey} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <div
+                                                            className="w-4 h-4 rounded-full ring-2 ring-offset-2"
+                                                            style={{ backgroundColor: color, ringColor: color }}
+                                                        />
+                                                        <span className="text-sm font-bold text-gray-800">{label}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                                        <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
+                                                            <div className="text-xs text-blue-700 font-medium">Promedio</div>
+                                                            <div className="text-base font-bold text-blue-900">
+                                                                {stat.mean.toFixed(2)}{expandedChart.config.unit}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-purple-50 border border-purple-200 rounded-md p-2">
+                                                            <div className="text-xs text-purple-700 font-medium">Mediana</div>
+                                                            <div className="text-base font-bold text-purple-900">
+                                                                {stat.median.toFixed(2)}{expandedChart.config.unit}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-green-50 border border-green-200 rounded-md p-2">
+                                                            <div className="text-xs text-green-700 font-medium">Máximo</div>
+                                                            <div className="text-base font-bold text-green-900">
+                                                                {stat.max.toFixed(2)}{expandedChart.config.unit}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-orange-50 border border-orange-200 rounded-md p-2">
+                                                            <div className="text-xs text-orange-700 font-medium">Mínimo</div>
+                                                            <div className="text-base font-bold text-orange-900">
+                                                                {stat.min.toFixed(2)}{expandedChart.config.unit}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

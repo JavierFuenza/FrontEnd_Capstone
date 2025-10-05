@@ -23,9 +23,37 @@ export function GraficosPageContent() {
   const [selectedVariable, setSelectedVariable] = useState<string>(mockVariables[0]);
 
   const handleCityChange = (city: string) => {
-    setSelectedCities(prev => 
+    setSelectedCities(prev =>
       prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]
     );
+  };
+
+  // Calcula el rango dinámico del eje Y basado en los datos visibles
+  const getYAxisDomain = () => {
+    if (selectedCities.length === 0) return ['auto', 'auto'];
+
+    let min = Infinity;
+    let max = -Infinity;
+
+    mockData.forEach(dataPoint => {
+      selectedCities.forEach(city => {
+        const value = dataPoint[city as keyof typeof dataPoint];
+        if (typeof value === 'number') {
+          min = Math.min(min, value);
+          max = Math.max(max, value);
+        }
+      });
+    });
+
+    if (min === Infinity || max === -Infinity) return ['auto', 'auto'];
+
+    const range = max - min;
+    const padding = range * 0.1; // 10% de padding arriba y abajo
+
+    return [
+      Math.floor(min - padding),
+      Math.ceil(max + padding)
+    ];
   };
 
   return (
@@ -100,7 +128,7 @@ export function GraficosPageContent() {
                 <LineChart data={mockData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
-                  <YAxis />
+                  <YAxis domain={getYAxisDomain()} />
                   <Tooltip />
                   <Legend />
                   {selectedCities.map((city, index) => (

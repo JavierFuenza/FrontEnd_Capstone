@@ -48,13 +48,26 @@ export function MapaInteractivoPage() {
     const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
     // Modal state for chart expansion
-    const [expandedChart, setExpandedChart] = useState<{ data: any[], config: any } | null>(null);
+    const [expandedChart, setExpandedChart] = useState<{
+        data: any[],
+        config: any,
+        chartKey: string,
+        allowTemporalSwitch: boolean,
+        allowTimeRangeFilter: boolean,
+        rawData: any[]
+    } | null>(null);
 
     // Temporal view states for each chart (keyed by chartKey)
     const [chartViews, setChartViews] = useState<Record<string, 'mensual' | 'anual'>>({});
 
     // Stats visibility states for each chart (keyed by chartKey)
     const [statsVisible, setStatsVisible] = useState<Record<string, boolean>>({});
+
+    // Time range filter states for temperature charts (keyed by chartKey)
+    const [timeRangeFilters, setTimeRangeFilters] = useState<Record<string, '1year' | '2years' | '5years' | 'all'>>({});
+
+    // Force modal re-render counter
+    const [modalRenderKey, setModalRenderKey] = useState(0);
 
     // Fetch estaciones desde el backend
     useEffect(() => {
@@ -240,6 +253,64 @@ export function MapaInteractivoPage() {
         ];
     };
 
+    // Función para parsear fechas en formato "YYYY Mes" a Date
+    const parseMonthYear = (dateStr: string): Date | null => {
+        if (!dateStr) return null;
+
+        const monthNames: Record<string, number> = {
+            'Enero': 0, 'Febrero': 1, 'Marzo': 2, 'Abril': 3,
+            'Mayo': 4, 'Junio': 5, 'Julio': 6, 'Agosto': 7,
+            'Septiembre': 8, 'Octubre': 9, 'Noviembre': 10, 'Diciembre': 11
+        };
+
+        const parts = dateStr.trim().split(' ');
+        if (parts.length !== 2) return null;
+
+        const year = parseInt(parts[0]);
+        const month = monthNames[parts[1]];
+
+        if (isNaN(year) || month === undefined) return null;
+
+        return new Date(year, month, 1);
+    };
+
+    // Función para filtrar datos por rango temporal desde el último registro
+    const filterByTimeRange = (data: any[], range: '1year' | '2years' | '5years' | 'all', dateKey = 'mes') => {
+        if (range === 'all' || data.length === 0) return data;
+
+        // Encontrar la fecha más reciente
+        const sortedData = [...data].sort((a, b) => {
+            const dateA = parseMonthYear(a[dateKey]);
+            const dateB = parseMonthYear(b[dateKey]);
+            if (!dateA || !dateB) return 0;
+            return dateB.getTime() - dateA.getTime();
+        });
+
+        const latestDate = parseMonthYear(sortedData[0][dateKey]);
+        if (!latestDate) return data;
+
+        // Calcular fecha de inicio según el rango (inclusive del mismo mes)
+        const startDate = new Date(latestDate);
+        switch (range) {
+            case '1year':
+                startDate.setFullYear(latestDate.getFullYear() - 1);
+                break;
+            case '2years':
+                startDate.setFullYear(latestDate.getFullYear() - 2);
+                break;
+            case '5years':
+                startDate.setFullYear(latestDate.getFullYear() - 5);
+                break;
+        }
+
+        // Filtrar datos dentro del rango (>= startDate incluye el mes inicial)
+        return data.filter(item => {
+            const itemDate = parseMonthYear(item[dateKey]);
+            if (!itemDate) return false;
+            return itemDate >= startDate && itemDate <= latestDate;
+        });
+    };
+
     // Función para agrupar datos mensuales por año
     const aggregateByYear = (data: any[], dataKeys: string[]) => {
         const yearGroups: { [key: string]: any } = {};
@@ -265,7 +336,7 @@ export function MapaInteractivoPage() {
             });
         });
 
-        // Calcular promedios anuales
+        // Calcular promedios anuales y ordenar por año
         return Object.values(yearGroups).map(yearData => {
             const result: any = { anio: yearData.anio };
             dataKeys.forEach(key => {
@@ -275,7 +346,11 @@ export function MapaInteractivoPage() {
                 }
             });
             return result;
-        }).sort((a, b) => a.anio.localeCompare(b.anio));
+        }).sort((a, b) => {
+            const yearA = parseInt(a.anio);
+            const yearB = parseInt(b.anio);
+            return yearA - yearB;
+        });
     };
 
     // Función genérica para renderizar gráfico con botón de expansión y funcionalidades avanzadas
@@ -290,7 +365,8 @@ export function MapaInteractivoPage() {
         chartKey = '',
         unit = '',
         allowTemporalSwitch = false,
-        description = ''
+        description = '',
+        allowTimeRangeFilter = false
     ) => {
         // Contar registros válidos
         const validCounts = dataKeys.map(key =>
@@ -304,9 +380,38 @@ export function MapaInteractivoPage() {
         let validData = filterEmptyData(data, dataKeys);
         if (validData.length === 0) return null;
 
+        // Ordenar datos temporalmente si el eje X es 'mes' o 'anio'
+        if (xAxisKey === 'mes') {
+            validData = validData.sort((a, b) => {
+                const dateA = parseMonthYear(a[xAxisKey]);
+                const dateB = parseMonthYear(b[xAxisKey]);
+                if (!dateA || !dateB) return 0;
+                return dateA.getTime() - dateB.getTime();
+            });
+        } else if (xAxisKey === 'anio') {
+            validData = validData.sort((a, b) => {
+                const yearA = parseInt(a[xAxisKey]);
+                const yearB = parseInt(b[xAxisKey]);
+                if (isNaN(yearA) || isNaN(yearB)) return 0;
+                return yearA - yearB;
+            });
+        }
+
         // Obtener vista actual de este gráfico desde el estado global
         const currentView = chartViews[chartKey] || 'mensual';
         const shouldShowTemporalSwitch = allowTemporalSwitch && xAxisKey === 'mes' && validData.length > 12;
+
+        // Guardar datos sin filtrar para el modal
+        const unfilteredValidData = validData;
+
+        // Aplicar filtro de rango temporal si está habilitado
+        // Por defecto: 1 año en vista mensual, 2 años en vista anual
+        const defaultRange = currentView === 'anual' ? '2years' : '1year';
+        const currentTimeRange = timeRangeFilters[chartKey] || defaultRange;
+        if (allowTimeRangeFilter) {
+            validData = filterByTimeRange(validData, currentTimeRange, xAxisKey);
+            if (validData.length === 0) return null;
+        }
 
         let displayData = validData;
         let displayXAxisKey = xAxisKey;
@@ -314,6 +419,13 @@ export function MapaInteractivoPage() {
         if (shouldShowTemporalSwitch && currentView === 'anual') {
             displayData = aggregateByYear(validData, dataKeys);
             displayXAxisKey = 'anio';
+            // Ordenar datos anuales
+            displayData = displayData.sort((a, b) => {
+                const yearA = parseInt(a.anio);
+                const yearB = parseInt(b.anio);
+                if (isNaN(yearA) || isNaN(yearB)) return 0;
+                return yearA - yearB;
+            });
         }
 
         // Función para cambiar la vista de este gráfico específico
@@ -338,6 +450,7 @@ export function MapaInteractivoPage() {
             yAxisLabel,
             title,
             xAxisKey: displayXAxisKey,
+            originalXAxisKey: xAxisKey, // Guardar el eje original (siempre 'mes' para datos temporales)
             unit,
             allStats
         };
@@ -372,13 +485,20 @@ export function MapaInteractivoPage() {
                             variant="ghost"
                             size="sm"
                             className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => setExpandedChart({ data: displayData, config: chartConfig })}
+                            onClick={() => setExpandedChart({
+                                data: displayData,
+                                config: chartConfig,
+                                chartKey: chartKey,
+                                allowTemporalSwitch: shouldShowTemporalSwitch,
+                                allowTimeRangeFilter: allowTimeRangeFilter,
+                                rawData: unfilteredValidData
+                            })}
                         >
                             <Maximize2 className="w-4 h-4" />
                         </Button>
                     </div>
 
-                    {/* Controles: Estadísticas y Vista Temporal */}
+                    {/* Controles: Estadísticas, Vista Temporal y Filtro de Rango */}
                     <div className="mt-3 flex items-center gap-2 flex-wrap">
                         {/* Botón para mostrar/ocultar estadísticas */}
                         {allStats.length > 0 && (
@@ -417,6 +537,28 @@ export function MapaInteractivoPage() {
                                     {currentView === 'anual' ? '' : 'Anual'}
                                 </span>
                             </button>
+                        )}
+
+                        {/* Filtro de rango temporal para temperatura */}
+                        {allowTimeRangeFilter && (
+                            <div className="flex gap-1 bg-gray-100 rounded-lg p-1 flex-shrink-0">
+                                {(['1year', '2years', '5years', 'all'] as const).map((range) => {
+                                    const labels = { '1year': '1 año', '2years': '2 años', '5years': '5 años', 'all': 'Todo' };
+                                    return (
+                                        <button
+                                            key={range}
+                                            onClick={() => setTimeRangeFilters(prev => ({ ...prev, [chartKey]: range }))}
+                                            className={`px-2 py-1 text-xs font-medium rounded transition-all ${
+                                                currentTimeRange === range
+                                                    ? 'bg-white text-gray-900 shadow-sm'
+                                                    : 'text-gray-600 hover:text-gray-900'
+                                            }`}
+                                        >
+                                            {labels[range]}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
 
@@ -601,9 +743,17 @@ export function MapaInteractivoPage() {
 
                 // Filtrar datos que tienen al menos un valor válido en algún dataKey
                 // Y filtrar registros vacíos (donde ningún dataKey tiene valor)
-                const validData = filterEmptyData(currentData, dataKeys);
+                let validData = filterEmptyData(currentData, dataKeys);
 
                 if (validData.length === 0) return null;
+
+                // Ordenar datos temporalmente
+                validData = validData.sort((a, b) => {
+                    const dateA = parseMonthYear(a.mes);
+                    const dateB = parseMonthYear(b.mes);
+                    if (!dateA || !dateB) return 0;
+                    return dateA.getTime() - dateB.getTime();
+                });
 
                 // Usar barras si alguno de los dataKeys tiene <= 1 registro
                 const maxCount = Math.max(...validDataCounts.map(item => item.count));
@@ -629,7 +779,14 @@ export function MapaInteractivoPage() {
                                 variant="ghost"
                                 size="sm"
                                 className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => setExpandedChart({ data: validData, config: chartConfig })}
+                                onClick={() => setExpandedChart({
+                                    data: validData,
+                                    config: chartConfig,
+                                    chartKey: title,
+                                    allowTemporalSwitch: false,
+                                    allowTimeRangeFilter: false,
+                                    rawData: validData
+                                })}
                             >
                                 <Maximize2 className="w-4 h-4" />
                             </Button>
@@ -676,7 +833,8 @@ export function MapaInteractivoPage() {
                     'temp-max-min-abs',
                     '°C',
                     true,
-                    'Temperaturas extremas absolutas registradas mensualmente'
+                    'Temperaturas extremas absolutas registradas mensualmente',
+                    true
                 );
                 if (chart) charts.push(chart);
             }
@@ -694,7 +852,8 @@ export function MapaInteractivoPage() {
                     'temp-max-min-med',
                     '°C',
                     true,
-                    'Promedio mensual de temperaturas máximas y mínimas'
+                    'Promedio mensual de temperaturas máximas y mínimas',
+                    true
                 );
                 if (chart) charts.push(chart);
             }
@@ -712,7 +871,8 @@ export function MapaInteractivoPage() {
                     'temp-med',
                     '°C',
                     true,
-                    'Temperatura promedio mensual registrada'
+                    'Temperatura promedio mensual registrada',
+                    true
                 );
                 if (chart) charts.push(chart);
             }
@@ -844,7 +1004,8 @@ export function MapaInteractivoPage() {
                     'humedad',
                     '%',
                     true,
-                    'Porcentaje promedio de humedad relativa en el aire registrado mensualmente'
+                    'Porcentaje promedio de humedad relativa en el aire registrado mensualmente',
+                    true
                 );
                 if (chart) charts.push(chart);
             }
@@ -1078,37 +1239,156 @@ export function MapaInteractivoPage() {
             )}
 
             {/* MODAL DE GRÁFICO EXPANDIDO */}
-            {expandedChart && (
-                <div
-                    className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-                    onClick={() => setExpandedChart(null)}
-                >
+            {expandedChart && (() => {
+                // Forzar uso de modalRenderKey para que React detecte cambios
+                const _renderKey = modalRenderKey;
+
+                const currentView = chartViews[expandedChart.chartKey] || 'mensual';
+                const currentTimeRange = timeRangeFilters[expandedChart.chartKey] || (currentView === 'anual' ? '2years' : '1year');
+                const currentStatsVisible = statsVisible[expandedChart.chartKey] || false;
+
+                // Recalcular displayData con filtros actuales
+                let modalDisplayData = expandedChart.rawData;
+                const originalXAxisKey = expandedChart.config.originalXAxisKey || expandedChart.config.xAxisKey; // Usar el eje original guardado
+                let modalDisplayXAxisKey = originalXAxisKey;
+
+                // Aplicar filtro de tiempo ANTES de cualquier agregación (siempre con el eje original 'mes')
+                if (expandedChart.allowTimeRangeFilter) {
+                    modalDisplayData = filterByTimeRange(modalDisplayData, currentTimeRange, originalXAxisKey);
+                }
+
+                // Aplicar vista anual si está habilitado y seleccionado
+                if (expandedChart.allowTemporalSwitch && currentView === 'anual') {
+                    // Vista ANUAL: Agregar datos por año
+                    modalDisplayData = aggregateByYear(modalDisplayData, expandedChart.config.dataKeys);
+                    modalDisplayXAxisKey = 'anio';
+                    modalDisplayData = modalDisplayData.sort((a, b) => {
+                        const yearA = parseInt(a.anio);
+                        const yearB = parseInt(b.anio);
+                        if (isNaN(yearA) || isNaN(yearB)) return 0;
+                        return yearA - yearB;
+                    });
+                } else {
+                    // Vista MENSUAL: Mantener datos mensuales con eje 'mes'
+                    modalDisplayXAxisKey = originalXAxisKey; // 'mes'
+                }
+
+                // Recalcular estadísticas con los datos filtrados
+                const modalStats = calculateMultiStats(modalDisplayData, expandedChart.config.dataKeys);
+
+                // Recalcular el tipo de gráfico basado en los datos actuales
+                const validCounts = expandedChart.config.dataKeys.map((key: string) =>
+                    modalDisplayData.filter((item: any) => item[key] !== null && item[key] !== undefined && item[key] !== '').length
+                );
+                const maxCount = Math.max(...validCounts);
+                const useBarChart = maxCount <= 1;
+                const ChartComponent = useBarChart ? BarChart : LineChart;
+
+                return (
                     <div
-                        className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-300"
-                        onClick={(e) => e.stopPropagation()}
+                        className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+                        onClick={() => setExpandedChart(null)}
                     >
-                        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
-                            <h3 className="text-2xl font-bold">{expandedChart.config.title}</h3>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setExpandedChart(null)}
-                                className="hover:bg-gray-100"
-                            >
-                                <X className="w-6 h-6" />
-                            </Button>
-                        </div>
-                        <div className="p-6">
-                            <ResponsiveContainer width="100%" height={600}>
-                                {expandedChart.config.useBarChart ? (
-                                    <BarChart data={expandedChart.data}>
+                        <div
+                            className="bg-white rounded-lg shadow-2xl w-full max-w-7xl max-h-[75vh] overflow-y-auto animate-in zoom-in-95 duration-300"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
+                                <h3 className="text-2xl font-bold">{expandedChart.config.title}</h3>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setExpandedChart(null)}
+                                    className="hover:bg-gray-100"
+                                >
+                                    <X className="w-6 h-6" />
+                                </Button>
+                            </div>
+
+                            {/* Controles en modal */}
+                            <div className="px-6 pt-4 pb-2 border-b bg-gray-50">
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    {/* Toggle mensual/anual */}
+                                    {expandedChart.allowTemporalSwitch && (
+                                        <button
+                                            onClick={() => {
+                                                if (!expandedChart) return;
+                                                setChartViews(prev => ({
+                                                    ...prev,
+                                                    [expandedChart.chartKey]: currentView === 'mensual' ? 'anual' : 'mensual'
+                                                }));
+                                                setModalRenderKey(prev => prev + 1);
+                                            }}
+                                            className="relative inline-flex h-9 w-32 items-center rounded-full bg-gray-200 transition-colors hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                                        >
+                                            <span
+                                                className={`inline-flex h-8 w-16 items-center justify-center rounded-full bg-white shadow-md transform transition-transform duration-300 ease-in-out ${
+                                                    currentView === 'anual' ? 'translate-x-[60px]' : 'translate-x-0.5'
+                                                }`}
+                                            >
+                                                <span className="text-sm font-semibold text-gray-900">
+                                                    {currentView === 'mensual' ? 'Mensual' : 'Anual'}
+                                                </span>
+                                            </span>
+                                            <span className="absolute left-2 text-sm font-medium text-gray-600 pointer-events-none">
+                                                {currentView === 'mensual' ? '' : 'Mensual'}
+                                            </span>
+                                            <span className="absolute right-2 text-sm font-medium text-gray-600 pointer-events-none">
+                                                {currentView === 'anual' ? '' : 'Anual'}
+                                            </span>
+                                        </button>
+                                    )}
+
+                                    {/* Filtros de rango temporal */}
+                                    {expandedChart.allowTimeRangeFilter && (
+                                        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                                            {(['1year', '2years', '5years', 'all'] as const).map((range) => {
+                                                const labels = { '1year': '1 año', '2years': '2 años', '5years': '5 años', 'all': 'Todo' };
+                                                return (
+                                                    <button
+                                                        key={range}
+                                                        onClick={() => {
+                                                            if (!expandedChart) return;
+                                                            setTimeRangeFilters(prev => ({ ...prev, [expandedChart.chartKey]: range }));
+                                                            setModalRenderKey(prev => prev + 1);
+                                                        }}
+                                                        className={`px-3 py-1.5 text-sm font-medium rounded transition-all ${
+                                                            currentTimeRange === range
+                                                                ? 'bg-white text-gray-900 shadow-sm'
+                                                                : 'text-gray-600 hover:text-gray-900'
+                                                        }`}
+                                                    >
+                                                        {labels[range]}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Gráfico */}
+                            <div className="p-6">
+                                <ResponsiveContainer width="100%" height={600} key={`chart-${currentView}-${useBarChart}`}>
+                                {useBarChart ? (
+                                    <BarChart data={modalDisplayData} margin={{ top: 10, right: 40, left: 10, bottom: 25 }}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis
-                                            dataKey={expandedChart.config.xAxisKey}
+                                            dataKey={modalDisplayXAxisKey}
                                             tick={{ fontSize: 14 }}
+                                            angle={-45}
+                                            textAnchor="end"
+                                            label={{
+                                                value: currentView === 'anual' ? 'Año' : 'Mes',
+                                                position: 'insideBottom',
+                                                offset: 5,
+                                                style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
+                                            }}
+                                            height={130}
+                                            interval="preserveStartEnd"
                                         />
                                         <YAxis
-                                            domain={getYAxisDomain(expandedChart.data, expandedChart.config.dataKeys)}
+                                            domain={getYAxisDomain(modalDisplayData, expandedChart.config.dataKeys)}
                                             tick={{ fontSize: 14 }}
                                             label={{
                                                 value: expandedChart.config.yAxisLabel,
@@ -1119,8 +1399,23 @@ export function MapaInteractivoPage() {
                                         />
                                         <Tooltip contentStyle={{ fontSize: 14 }} />
                                         <Legend wrapperStyle={{ fontSize: 14 }} />
+                                        {modalStats.map((stat: any, idx: number) => (
+                                            <ReferenceLine
+                                                key={`ref-${stat.dataKey}`}
+                                                y={stat.mean}
+                                                stroke={expandedChart.config.colors[expandedChart.config.dataKeys.indexOf(stat.dataKey)]}
+                                                strokeDasharray="5 5"
+                                                strokeOpacity={0.5}
+                                                label={{
+                                                    value: `Media ${expandedChart.config.labels[expandedChart.config.dataKeys.indexOf(stat.dataKey)]}`,
+                                                    position: idx % 2 === 0 ? 'right' : 'left',
+                                                    fontSize: 11,
+                                                    fill: expandedChart.config.colors[expandedChart.config.dataKeys.indexOf(stat.dataKey)]
+                                                }}
+                                            />
+                                        ))}
                                         {expandedChart.config.dataKeys.map((dataKey: string, index: number) => {
-                                            const hasData = expandedChart.data.some((item: any) =>
+                                            const hasData = modalDisplayData.some((item: any) =>
                                                 item[dataKey] !== null && item[dataKey] !== undefined && item[dataKey] !== ''
                                             );
                                             if (!hasData) return null;
@@ -1136,14 +1431,24 @@ export function MapaInteractivoPage() {
                                         })}
                                     </BarChart>
                                 ) : (
-                                    <LineChart data={expandedChart.data}>
+                                    <LineChart data={modalDisplayData} margin={{ top: 10, right: 40, left: 10, bottom: 25 }}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis
-                                            dataKey={expandedChart.config.xAxisKey}
+                                            dataKey={modalDisplayXAxisKey}
                                             tick={{ fontSize: 14 }}
+                                            angle={-45}
+                                            textAnchor="end"
+                                            label={{
+                                                value: currentView === 'anual' ? 'Año' : 'Mes',
+                                                position: 'insideBottom',
+                                                offset: 5,
+                                                style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
+                                            }}
+                                            height={130}
+                                            interval="preserveStartEnd"
                                         />
                                         <YAxis
-                                            domain={getYAxisDomain(expandedChart.data, expandedChart.config.dataKeys)}
+                                            domain={getYAxisDomain(modalDisplayData, expandedChart.config.dataKeys)}
                                             tick={{ fontSize: 14 }}
                                             label={{
                                                 value: expandedChart.config.yAxisLabel,
@@ -1154,8 +1459,23 @@ export function MapaInteractivoPage() {
                                         />
                                         <Tooltip contentStyle={{ fontSize: 14 }} />
                                         <Legend wrapperStyle={{ fontSize: 14 }} />
+                                        {modalStats.map((stat: any, idx: number) => (
+                                            <ReferenceLine
+                                                key={`ref-${stat.dataKey}`}
+                                                y={stat.mean}
+                                                stroke={expandedChart.config.colors[expandedChart.config.dataKeys.indexOf(stat.dataKey)]}
+                                                strokeDasharray="5 5"
+                                                strokeOpacity={0.5}
+                                                label={{
+                                                    value: `Media ${expandedChart.config.labels[expandedChart.config.dataKeys.indexOf(stat.dataKey)]}`,
+                                                    position: idx % 2 === 0 ? 'right' : 'left',
+                                                    fontSize: 11,
+                                                    fill: expandedChart.config.colors[expandedChart.config.dataKeys.indexOf(stat.dataKey)]
+                                                }}
+                                            />
+                                        ))}
                                         {expandedChart.config.dataKeys.map((dataKey: string, index: number) => {
-                                            const hasData = expandedChart.data.some((item: any) =>
+                                            const hasData = modalDisplayData.some((item: any) =>
                                                 item[dataKey] !== null && item[dataKey] !== undefined && item[dataKey] !== ''
                                             );
                                             if (!hasData) return null;
@@ -1174,68 +1494,63 @@ export function MapaInteractivoPage() {
                                     </LineChart>
                                 )}
                             </ResponsiveContainer>
+                            </div>
 
-                            {/* Análisis estadístico en modal expandido */}
-                            {expandedChart.config.allStats && expandedChart.config.allStats.length > 0 && (
-                                <div className="mt-8">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <TrendingUp className="w-5 h-5 text-emerald-600" />
-                                        <h4 className="text-lg font-semibold text-gray-800">Análisis Estadístico Detallado</h4>
-                                        <Badge variant="secondary" className="text-sm ml-auto">
-                                            {expandedChart.data.length} registros
-                                        </Badge>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {expandedChart.config.allStats.map((stat: any) => {
-                                            const labelIndex = expandedChart.config.dataKeys.indexOf(stat.dataKey);
-                                            const label = expandedChart.config.labels[labelIndex] || stat.dataKey;
-                                            const color = expandedChart.config.colors[labelIndex] || '#6b7280';
+                            {/* Análisis Estadístico Detallado - Siempre visible en modal */}
+                            {modalStats.length > 0 && (
+                                <div className="px-6 pb-6">
+                                    <div className="p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <TrendingUp className="w-5 h-5 text-emerald-600" />
+                                            <h4 className="text-base font-semibold text-gray-800">Análisis Estadístico Detallado</h4>
+                                            <Badge variant="secondary" className="text-sm ml-auto">
+                                                {modalDisplayData.length} registros
+                                            </Badge>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {modalStats.map((stat: any) => {
+                                                const labelIndex = expandedChart.config.dataKeys.indexOf(stat.dataKey);
+                                                const label = expandedChart.config.labels[labelIndex] || stat.dataKey;
+                                                const color = expandedChart.config.colors[labelIndex] || '#6b7280';
 
-                                            return (
-                                                <div key={stat.dataKey} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <div
-                                                            className="w-4 h-4 rounded-full ring-2 ring-offset-2"
-                                                            style={{ backgroundColor: color, ringColor: color }}
-                                                        />
-                                                        <span className="text-sm font-bold text-gray-800">{label}</span>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2 text-sm">
-                                                        <div className="bg-blue-50 border border-blue-200 rounded-md p-2">
-                                                            <div className="text-xs text-blue-700 font-medium">Promedio</div>
-                                                            <div className="text-base font-bold text-blue-900">
-                                                                {stat.mean.toFixed(2)}{expandedChart.config.unit}
-                                                            </div>
+                                                return (
+                                                    <div key={stat.dataKey} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <div
+                                                                className="w-4 h-4 rounded-full"
+                                                                style={{ backgroundColor: color }}
+                                                            />
+                                                            <span className="text-sm font-bold text-gray-800">{label}</span>
                                                         </div>
-                                                        <div className="bg-purple-50 border border-purple-200 rounded-md p-2">
-                                                            <div className="text-xs text-purple-700 font-medium">Mediana</div>
-                                                            <div className="text-base font-bold text-purple-900">
-                                                                {stat.median.toFixed(2)}{expandedChart.config.unit}
-                                                            </div>
-                                                        </div>
-                                                        <div className="bg-green-50 border border-green-200 rounded-md p-2">
-                                                            <div className="text-xs text-green-700 font-medium">Máximo</div>
-                                                            <div className="text-base font-bold text-green-900">
-                                                                {stat.max.toFixed(2)}{expandedChart.config.unit}
-                                                            </div>
-                                                        </div>
-                                                        <div className="bg-orange-50 border border-orange-200 rounded-md p-2">
-                                                            <div className="text-xs text-orange-700 font-medium">Mínimo</div>
-                                                            <div className="text-base font-bold text-orange-900">
-                                                                {stat.min.toFixed(2)}{expandedChart.config.unit}
-                                                            </div>
+                                                        <div className="grid grid-cols-2 gap-2 text-sm">
+                                                            <Badge variant="outline" className="bg-blue-50 border-blue-200 justify-between">
+                                                                <span className="font-medium">Promedio:</span>
+                                                                <span className="font-bold">{stat.mean.toFixed(2)}{expandedChart.config.unit}</span>
+                                                            </Badge>
+                                                            <Badge variant="outline" className="bg-purple-50 border-purple-200 justify-between">
+                                                                <span className="font-medium">Mediana:</span>
+                                                                <span className="font-bold">{stat.median.toFixed(2)}{expandedChart.config.unit}</span>
+                                                            </Badge>
+                                                            <Badge variant="outline" className="bg-green-50 border-green-200 justify-between">
+                                                                <span className="font-medium">Máximo:</span>
+                                                                <span className="font-bold">{stat.max.toFixed(2)}{expandedChart.config.unit}</span>
+                                                            </Badge>
+                                                            <Badge variant="outline" className="bg-orange-50 border-orange-200 justify-between">
+                                                                <span className="font-medium">Mínimo:</span>
+                                                                <span className="font-bold">{stat.min.toFixed(2)}{expandedChart.config.unit}</span>
+                                                            </Badge>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

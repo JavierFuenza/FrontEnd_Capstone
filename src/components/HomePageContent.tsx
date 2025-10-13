@@ -1,10 +1,9 @@
 // src/components/HomePageContent.tsx
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MapPin, BarChart3 } from "lucide-react";
+import { MapPin, BarChart3, ChevronLeft, ChevronRight, AlertTriangle, Lightbulb, Users } from "lucide-react";
 import { PricingCard } from "./PricingCard";
 
-// ... (El type Plan y el array pricingPlans se mantienen igual, no es necesario cambiarlo)
 type Plan = {
   title: string;
   price: string;
@@ -14,6 +13,7 @@ type Plan = {
   popular?: boolean;
   buttonVariant?: "default" | "outline";
 };
+
 const pricingPlans: Plan[] = [
   {
     title: "Gratuito", price: "$0", description: "Plan básico",
@@ -40,8 +40,32 @@ const pricingPlans: Plan[] = [
   },
 ];
 
+// Datos del carrusel
+const infoSlides = [
+  {
+    icon: AlertTriangle,
+    title: "El Desafío Ambiental de Chile",
+    content: "Actualmente, los datos ambientales en Chile se encuentran dispersos en múltiples fuentes gubernamentales, dificultando el acceso a información crítica sobre la calidad del aire, agua y recursos naturales. Esta fragmentación impide que ciudadanos, investigadores y organizaciones tomen decisiones informadas sobre el estado real de nuestro medio ambiente.",
+    color: "from-orange-500 to-red-500"
+  },
+  {
+    icon: Lightbulb,
+    title: "Nuestra Solución",
+    content: "El Observatorio Ambiental Digital centraliza y visualiza datos de múltiples fuentes oficiales en una plataforma intuitiva y accesible. Ofrecemos herramientas avanzadas de análisis, mapas interactivos y gráficos personalizables que transforman datos complejos en información clara y accionable. Democratizamos el acceso a la información ambiental para impulsar la transparencia y conciencia ecológica en todo Chile.",
+    color: "from-emerald-500 to-teal-500"
+  },
+  {
+    icon: Users,
+    title: "Quiénes Somos",
+    content: "Somos un equipo multidisciplinario de ingenieros en desarrollo de software comprometidos con el impacto social y ambiental. Este proyecto representa nuestro trabajo de titulación (Capstone), donde aplicamos tecnologías modernas y mejores prácticas de desarrollo para crear una solución real que beneficie a la comunidad, promoviendo la transparencia de datos y facilitando la investigación ambiental en Chile.",
+    color: "from-blue-500 to-indigo-500"
+  }
+];
 
 export function HomePageContent() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
   useEffect(() => {
     if (window.location.hash === "#precios-section") {
       setTimeout(() => {
@@ -53,33 +77,116 @@ export function HomePageContent() {
     }
   }, []);
 
+  // Auto-play del carrusel
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % infoSlides.length);
+    }, 5000); // Cambia cada 5 segundos
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying]);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % infoSlides.length);
+    setIsAutoPlaying(false);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + infoSlides.length) % infoSlides.length);
+    setIsAutoPlaying(false);
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+    setIsAutoPlaying(false);
+  };
+
   return (
     <>
-      {/* =============================================== */}
-      {/* == SECCIÓN "POR QUÉ DEL PROYECTO" - INICIO == */}
-      {/* =============================================== */}
-      <div className="text-center mb-20">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">El Problema y Nuestra Misión</h2>
-        <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-          En Chile, el acceso a datos ambientales consolidados es limitado y fragmentado. Nuestra misión es democratizar esta información, proporcionando una plataforma centralizada y fácil de usar para que ciudadanos, investigadores y organizaciones puedan monitorear, analizar y comprender la calidad de nuestro entorno.
-        </p>
-      </div>
-      {/* ============================================= */}
-      {/* == SECCIÓN "POR QUÉ DEL PROYECTO" - FIN == */}
-      {/* ============================================= */}
+      {/* Carrusel de Información */}
+      <div className="mb-20 relative">
+        <div className="max-w-5xl mx-auto">
+          {/* Contenedor del slide */}
+          <div
+            className="relative overflow-hidden rounded-2xl shadow-2xl"
+            onMouseEnter={() => setIsAutoPlaying(false)}
+            onMouseLeave={() => setIsAutoPlaying(true)}
+          >
+            {/* Slides */}
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+            >
+              {infoSlides.map((slide, index) => {
+                const IconComponent = slide.icon;
+                return (
+                  <div
+                    key={index}
+                    className="w-full flex-shrink-0 relative"
+                  >
+                    {/* Fondo con gradiente */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${slide.color} opacity-10`} />
 
-      {/* ======================================== */}
-      {/* == SECCIÓN "CONÓCENOS" - INICIO == */}
-      {/* ======================================== */}
-      <div className="text-center mb-20">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">Quiénes Somos</h2>
-        <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-          Somos un equipo de estudiantes apasionados por la tecnología y el medio ambiente. Este proyecto nace como nuestro Capstone, con el objetivo de aplicar nuestras habilidades en desarrollo de software para crear una herramienta de impacto positivo, promoviendo la transparencia y la conciencia ambiental en el país.
-        </p>
+                    {/* Contenido */}
+                    <div className="relative px-8 py-12 md:px-16 md:py-16">
+                      <div className="flex flex-col items-center text-center">
+                        {/* Icono */}
+                        <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${slide.color} flex items-center justify-center mb-6 shadow-lg`}>
+                          <IconComponent className="w-10 h-10 text-white" />
+                        </div>
+
+                        {/* Título */}
+                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                          {slide.title}
+                        </h2>
+
+                        {/* Contenido */}
+                        <p className="text-lg text-gray-600 leading-relaxed max-w-3xl">
+                          {slide.content}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Botones de navegación */}
+            <button
+              onClick={prevSlide}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all hover:scale-110"
+              aria-label="Slide anterior"
+            >
+              <ChevronLeft className="w-6 h-6 text-gray-700" />
+            </button>
+            <button
+              onClick={nextSlide}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all hover:scale-110"
+              aria-label="Siguiente slide"
+            >
+              <ChevronRight className="w-6 h-6 text-gray-700" />
+            </button>
+          </div>
+
+          {/* Indicadores de slides */}
+          <div className="flex justify-center gap-2 mt-6">
+            {infoSlides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`h-2 rounded-full transition-all ${
+                  currentSlide === index
+                    ? 'w-8 bg-emerald-600'
+                    : 'w-2 bg-gray-300 hover:bg-gray-400'
+                }`}
+                aria-label={`Ir al slide ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
-      {/* ====================================== */}
-      {/* == SECCIÓN "CONÓCENOS" - FIN == */}
-      {/* ====================================== */}
 
       {/* Feature Cards */}
       <div className="grid md:grid-cols-2 gap-8 mb-20">

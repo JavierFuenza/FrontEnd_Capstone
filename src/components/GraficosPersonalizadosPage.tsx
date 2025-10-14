@@ -8,7 +8,7 @@ import { GlosarioModal } from './GlosarioModal';
 import { AnalisisCorrelacion } from './AnalisisCorrelacion';
 import html2canvas from 'html2canvas';
 
-const API_BASE_URL = `${import.meta.env.PUBLIC_API_BASE_URL}/api/private`;
+const API_BASE_URL = `${import.meta.env.PUBLIC_API_BASE_URL}api/private`;
 
 // Colores para las líneas del gráfico
 const COLORS = [

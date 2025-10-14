@@ -74,7 +74,7 @@ export function MapaInteractivoPage() {
         const fetchEstaciones = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${import.meta.env.PUBLIC_API_BASE_URL}/api/private/estaciones/`);
+                const response = await fetch(`${import.meta.env.PUBLIC_API_BASE_URL}api/private/estaciones/`);
                 if (!response.ok) {
                     throw new Error('Error al cargar estaciones');
                 }

@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Plus, Trash2, Loader2, BookOpen, Info, TrendingUp, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Loader2, BookOpen, Info, TrendingUp, AlertCircle, Download, Calendar } from 'lucide-react';
 import { GlosarioModal } from './GlosarioModal';
 import { AnalisisCorrelacion } from './AnalisisCorrelacion';
+import html2canvas from 'html2canvas';
 
-const API_BASE_URL = "http://localhost:8000/api/private";
+const API_BASE_URL = `${import.meta.env.PUBLIC_API_BASE_URL}/api/private`;
 
 // Colores para las líneas del gráfico
 const COLORS = [
@@ -58,6 +59,12 @@ const DESCRIPCIONES_RAPIDAS: Record<string, string> = {
 export function GraficosPageContent() {
   // Estado para las líneas del gráfico
   const [lines, setLines] = useState<LineConfig[]>([]);
+
+  // Referencia al contenedor del gráfico para exportar
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  // Estado para filtro de años
+  const [yearsFilter, setYearsFilter] = useState<number | null>(null);
 
   // Estado para el formulario de agregar línea
   const [formData, setFormData] = useState({
@@ -235,6 +242,13 @@ export function GraficosPageContent() {
   const prepararDatosGrafico = () => {
     if (lines.length === 0) return [];
 
+    // Calcular fecha de corte si hay filtro de años
+    let fechaCorte: Date | null = null;
+    if (yearsFilter !== null) {
+      fechaCorte = new Date();
+      fechaCorte.setFullYear(fechaCorte.getFullYear() - yearsFilter);
+    }
+
     // Crear un mapa de periodos con todos los valores
     const periodoMap = new Map<string, any>();
 
@@ -242,6 +256,19 @@ export function GraficosPageContent() {
       if (!line.loading && line.datos.length > 0) {
         line.datos.forEach(dato => {
           const periodo = dato.periodo;
+
+          // Aplicar filtro de años si está activo
+          if (fechaCorte) {
+            try {
+              const fechaPeriodo = new Date(periodo);
+              if (fechaPeriodo < fechaCorte) {
+                return; // Saltar este dato si está fuera del rango
+              }
+            } catch (e) {
+              // Si no se puede parsear la fecha, incluirlo de todas formas
+            }
+          }
+
           if (!periodoMap.has(periodo)) {
             periodoMap.set(periodo, { periodo });
           }
@@ -269,6 +296,41 @@ export function GraficosPageContent() {
       }
     }
     return null;
+  };
+
+  // Función para descargar el gráfico como imagen PNG de alta calidad
+  const descargarGrafico = async () => {
+    if (!chartRef.current) return;
+
+    try {
+      // Capturar el elemento con html2canvas
+      const canvas = await html2canvas(chartRef.current, {
+        scale: 3, // Alta resolución (3x)
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true
+      });
+
+      // Convertir a blob y descargar
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        // Generar nombre del archivo con timestamp
+        const timestamp = new Date().toISOString().slice(0, 10);
+        link.download = `grafico-observatorio-${timestamp}.png`;
+        link.href = url;
+        link.click();
+
+        // Limpiar
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    } catch (error) {
+      console.error('Error al descargar el gráfico:', error);
+      alert('No se pudo descargar el gráfico. Por favor intenta nuevamente.');
+    }
   };
 
   return (
@@ -539,12 +601,50 @@ export function GraficosPageContent() {
           <div className="lg:col-span-8 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-emerald-600" />
-                  Visualización
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                    Visualización
+                  </CardTitle>
+
+                  {/* Controles de filtro y descarga */}
+                  {lines.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      {/* Filtro por años */}
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-600" />
+                        <Select
+                          value={yearsFilter?.toString() || "all"}
+                          onValueChange={(value) => setYearsFilter(value === "all" ? null : parseInt(value))}
+                        >
+                          <SelectTrigger className="w-32 h-9">
+                            <SelectValue placeholder="Todos" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="1">Último año</SelectItem>
+                            <SelectItem value="2">2 años</SelectItem>
+                            <SelectItem value="3">3 años</SelectItem>
+                            <SelectItem value="5">5 años</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Botón de descarga */}
+                      <Button
+                        onClick={descargarGrafico}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Descargar PNG
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
-              <CardContent className="h-[600px] pt-4">
+              <CardContent className="h-[600px] pt-4" ref={chartRef}>
                 {lines.length === 0 ? (
                   // Skeleton del gráfico vacío
                   <div className="h-full flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 rounded-lg">

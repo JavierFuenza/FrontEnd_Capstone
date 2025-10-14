@@ -74,7 +74,7 @@ export function MapaInteractivoPage() {
         const fetchEstaciones = async () => {
             try {
                 setLoading(true);
-                const response = await fetch('http://localhost:8000/api/private/estaciones/');
+                const response = await fetch(`${import.meta.env.PUBLIC_API_BASE_URL}/api/private/estaciones/`);
                 if (!response.ok) {
                     throw new Error('Error al cargar estaciones');
                 }
@@ -109,7 +109,7 @@ export function MapaInteractivoPage() {
         for (const metric of metricsToCheck) {
             try {
                 const response = await fetch(
-                    `http://localhost:8000/api/private/metricas/${metric}/${estacion.nombre}`
+                    `${import.meta.env.PUBLIC_API_BASE_URL}/api/private/metricas/${metric}/${estacion.nombre}`
                 );
                 if (response.ok) {
                     const data = await response.json();
@@ -157,7 +157,7 @@ export function MapaInteractivoPage() {
             setLoadingMetric(true);
             try {
                 const response = await fetch(
-                    `http://localhost:8000/api/private/metricas/${selectedMetric}/${selectedEstacion.nombre}`
+                    `${import.meta.env.PUBLIC_API_BASE_URL}/api/private/metricas/${selectedMetric}/${selectedEstacion.nombre}`
                 );
 
                 if (!response.ok) {

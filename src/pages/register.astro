@@ -1,9 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { RegisterPage } from '../components/RegisterPage.tsx';
+import { RegisterPageWithAuth } from '../components/RegisterPageWithAuth.tsx';
 ---
 <Layout title="Registro">
   <main>
-    <RegisterPage client:load />
+    <RegisterPageWithAuth client:load />
   </main>
 </Layout>

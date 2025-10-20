@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import { NavBar } from '../components/NavBar.tsx';
+import { NavBarWithAuth } from '../components/NavBarWithAuth.tsx';
 import { Footer } from '../components/Footer.tsx';
 import { ScrollToTopButton } from '../components/ScrollToTopButton.tsx';
 
@@ -21,14 +21,14 @@ const { title } = Astro.props;
 		<title>{title}</title>
 	</head>
 	<body class="bg-background text-foreground">
-		
-		<NavBar client:load />
-		
+
+		<NavBarWithAuth client:load />
+
 		<slot />
 
     <Footer /> {/* <-- 2. Usa el componente aquí */}
 
 	<ScrollToTopButton client:visible />
-	
+
 	</body>
 </html>

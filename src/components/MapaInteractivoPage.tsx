@@ -74,16 +74,21 @@ export function MapaInteractivoPage() {
         const fetchEstaciones = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${import.meta.env.PUBLIC_API_BASE_URL}api/private/estaciones/`);
+                const API_BASE = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8000/';
+                const url = `${API_BASE}api/private/estaciones/`;
+                console.log('[MapaInteractivoPage] Fetching estaciones from:', url);
+
+                const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error('Error al cargar estaciones');
                 }
                 const data = await response.json();
+                console.log('[MapaInteractivoPage] Estaciones cargadas:', data.length);
                 setEstaciones(data);
                 setFilteredEstaciones(data);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Error desconocido');
-                console.error('Error fetching estaciones:', err);
+                console.error('[MapaInteractivoPage] Error fetching estaciones:', err);
             } finally {
                 setLoading(false);
             }

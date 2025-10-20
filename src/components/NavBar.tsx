@@ -1,15 +1,26 @@
 // src/components/NavBar.tsx
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button"; // <-- Importa el componente Button
-import { MapPin, BarChart3, Code, DollarSign, Leaf, Menu, X } from "lucide-react";
+import { MapPin, BarChart3, Code, DollarSign, Leaf, Menu, X, User, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function NavBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [pathname, setPathname] = useState("");
+  const { user, logout, loading } = useAuth();
 
   useEffect(() => {
     setPathname(window.location.pathname);
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
+  };
 
   const scrollToPrecios = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -73,17 +84,49 @@ export function NavBar() {
         </nav>
 
         {/* Botones de Auth - Desktop */}
-        <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-          <a href="/login">
-            <Button variant="outline" size="sm" className="text-sm font-medium">
-              Iniciar Sesión
-            </Button>
-          </a>
-          <a href="/register">
-            <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-sm font-medium shadow-sm">
-              Registrarse
-            </Button>
-          </a>
+        <div className="hidden md:flex items-center gap-3 flex-shrink-0">
+          {loading ? (
+            <div className="w-20 h-9 bg-gray-100 animate-pulse rounded"></div>
+          ) : user ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg shadow-sm">
+                <div className="relative">
+                  <User className="w-5 h-5 text-emerald-700" />
+                  <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></div>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-emerald-700 leading-tight">
+                    Conectado
+                  </span>
+                  <span className="text-sm font-medium text-emerald-900 leading-tight">
+                    {user.displayName || user.email?.split('@')[0]}
+                  </span>
+                </div>
+              </div>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="text-sm font-medium border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
+              >
+                <LogOut className="w-4 h-4 mr-1.5" />
+                Cerrar Sesión
+              </Button>
+            </div>
+          ) : (
+            <>
+              <a href="/login">
+                <Button variant="outline" size="sm" className="text-sm font-medium">
+                  Iniciar Sesión
+                </Button>
+              </a>
+              <a href="/register">
+                <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-sm font-medium shadow-sm">
+                  Registrarse
+                </Button>
+              </a>
+            </>
+          )}
         </div>
 
 
@@ -134,16 +177,49 @@ export function NavBar() {
             </button>
 
             <div className="flex flex-col gap-2 pt-4 mt-2 border-t border-gray-200">
-              <a href="/login">
-                <Button variant="outline" size="sm" className="w-full text-sm font-medium">
-                  Iniciar Sesión
-                </Button>
-              </a>
-              <a href="/register">
-                <Button size="sm" className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-sm font-medium shadow-sm">
-                  Registrarse
-                </Button>
-              </a>
+              {user ? (
+                <>
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg">
+                    <div className="relative">
+                      <User className="w-5 h-5 text-emerald-700" />
+                      <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-emerald-700 leading-tight">
+                        Conectado
+                      </p>
+                      <p className="text-sm font-medium text-emerald-900 leading-tight">
+                        {user.displayName || 'Usuario'}
+                      </p>
+                      <p className="text-xs text-emerald-700 leading-tight">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleLogout}
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-sm font-medium border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Cerrar Sesión
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <a href="/login">
+                    <Button variant="outline" size="sm" className="w-full text-sm font-medium">
+                      Iniciar Sesión
+                    </Button>
+                  </a>
+                  <a href="/register">
+                    <Button size="sm" className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-sm font-medium shadow-sm">
+                      Registrarse
+                    </Button>
+                  </a>
+                </>
+              )}
             </div>
           </nav>
         </div>

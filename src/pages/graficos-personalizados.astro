@@ -1,11 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { GraficosPageContent } from '../components/GraficosPersonalizadosPage.tsx';
+import { GraficosPersonalizadosPageWithAuth } from '../components/GraficosPersonalizadosPageWithAuth.tsx';
 ---
 <Layout title="Gráficos Personalizados">
-
   <main>
-    <GraficosPageContent client:load />
+    <GraficosPersonalizadosPageWithAuth client:load />
   </main>
-
 </Layout>

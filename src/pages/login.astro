@@ -1,9 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { LoginPage } from '../components/LoginPage.tsx';
+import { LoginPageWithAuth } from '../components/LoginPageWithAuth.tsx';
 ---
 <Layout title="Iniciar Sesión">
   <main>
-    <LoginPage client:load />
+    <LoginPageWithAuth client:load />
   </main>
 </Layout>

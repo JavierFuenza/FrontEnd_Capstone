@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, X, BarChart3, Maximize2, Calendar, TrendingUp, Info } from "lucide-react";
+import { Search, MapPin, X, BarChart3, Maximize2, Calendar, TrendingUp, Info, Loader2 } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
 import { Map } from './Map';
 import { Badge } from "@/components/ui/badge";
@@ -692,8 +692,20 @@ export function MapaInteractivoPage() {
     const renderMetricCharts = () => {
         if (loadingMetric) {
             return (
-                <div className="text-center py-8 text-gray-500">
-                    Cargando datos...
+                <div className="space-y-4">
+                    {/* Skeleton de carga para gráficos */}
+                    {[1, 2, 3].map((i) => (
+                        <Card key={i} className="animate-pulse">
+                            <CardHeader>
+                                <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="h-[280px] bg-gray-100 rounded flex items-center justify-center">
+                                    <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
             );
         }
@@ -1212,8 +1224,10 @@ export function MapaInteractivoPage() {
             {/* MAPA PRINCIPAL */}
             <div className="w-full h-full relative z-0">
                 {loading ? (
-                    <div className="flex items-center justify-center h-full bg-gray-100">
-                        <p className="text-gray-500">Cargando mapa...</p>
+                    <div className="flex flex-col items-center justify-center h-full bg-gray-50">
+                        <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mb-4" />
+                        <p className="text-gray-700 font-medium">Cargando estaciones...</p>
+                        <p className="text-sm text-gray-500 mt-1">Preparando datos ambientales</p>
                     </div>
                 ) : (
                     <Map

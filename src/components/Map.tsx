@@ -1,10 +1,11 @@
 // src/components/Map.tsx
 import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+import { Loader2 } from 'lucide-react';
 
 let DefaultIcon = L.icon({
     iconUrl: icon.src,
@@ -52,48 +53,69 @@ function MapUpdater({ selectedEstacion }: { selectedEstacion?: Estacion | null }
 }
 
 export function Map({ estaciones, selectedEstacion, onEstacionSelect, showZoomControls = true }: MapProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [tilesLoaded, setTilesLoaded] = useState(false);
+
   if (typeof window === 'undefined') {
     return null;
   }
 
   return (
-    <MapContainer
-      center={center}
-      zoom={5}
-      zoomControl={false}
-      style={{ height: '100%', width: '100%' }}
-    >
-      {showZoomControls && <ZoomControl position="topright" />}
+    <div className="relative w-full h-full">
+      {/* Overlay de carga */}
+      {isLoading && (
+        <div className="absolute inset-0 z-[1000] bg-white flex flex-col items-center justify-center">
+          <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mb-4" />
+          <p className="text-gray-700 font-medium">Cargando mapa...</p>
+          <p className="text-sm text-gray-500 mt-1">Preparando estaciones ambientales</p>
+        </div>
+      )}
 
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
+      <MapContainer
+        center={center}
+        zoom={5}
+        zoomControl={false}
+        style={{ height: '100%', width: '100%' }}
+        whenReady={() => {
+          // Esperar un momento para que los tiles carguen
+          setTimeout(() => setIsLoading(false), 800);
+        }}
+      >
+        {showZoomControls && <ZoomControl position="topright" />}
 
-      {estaciones.map((estacion) => (
-        <Marker
-          key={estacion.id}
-          position={[estacion.latitud, estacion.longitud]}
-        >
-          <Popup>
-            <div className="text-sm space-y-2">
-              <div>
-                <div className="font-bold">{estacion.nombre}</div>
-                <div className="text-gray-600">{estacion.descripcion}</div>
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          eventHandlers={{
+            load: () => setTilesLoaded(true)
+          }}
+        />
+
+        {estaciones.map((estacion) => (
+          <Marker
+            key={estacion.id}
+            position={[estacion.latitud, estacion.longitud]}
+          >
+            <Popup>
+              <div className="text-sm space-y-2">
+                <div>
+                  <div className="font-bold">{estacion.nombre}</div>
+                  <div className="text-gray-600">{estacion.descripcion}</div>
+                </div>
+                {onEstacionSelect && (
+                  <button
+                    onClick={() => onEstacionSelect(estacion)}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+                  >
+                    Ver datos de calidad del aire
+                  </button>
+                )}
               </div>
-              {onEstacionSelect && (
-                <button
-                  onClick={() => onEstacionSelect(estacion)}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
-                >
-                  Ver datos de calidad del aire
-                </button>
-              )}
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-      <MapUpdater selectedEstacion={selectedEstacion} />
-    </MapContainer>
+            </Popup>
+          </Marker>
+        ))}
+        <MapUpdater selectedEstacion={selectedEstacion} />
+      </MapContainer>
+    </div>
   );
 }

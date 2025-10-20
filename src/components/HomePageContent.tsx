@@ -106,7 +106,7 @@ export function HomePageContent() {
   return (
     <>
       {/* Carrusel de Información */}
-      <div className="mb-20 relative">
+      <div className="mb-12 md:mb-16 lg:mb-20 relative">
         <div className="max-w-5xl mx-auto">
           {/* Contenedor del slide */}
           <div
@@ -130,20 +130,20 @@ export function HomePageContent() {
                     <div className={`absolute inset-0 bg-gradient-to-br ${slide.color} opacity-10`} />
 
                     {/* Contenido */}
-                    <div className="relative px-8 py-12 md:px-16 md:py-16">
+                    <div className="relative px-6 py-10 sm:px-8 sm:py-12 md:px-16 md:py-16">
                       <div className="flex flex-col items-center text-center">
                         {/* Icono */}
-                        <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${slide.color} flex items-center justify-center mb-6 shadow-lg`}>
-                          <IconComponent className="w-10 h-10 text-white" />
+                        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br ${slide.color} flex items-center justify-center mb-4 sm:mb-6 shadow-lg`}>
+                          <IconComponent className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                         </div>
 
                         {/* Título */}
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 sm:mb-6 px-2">
                           {slide.title}
                         </h2>
 
                         {/* Contenido */}
-                        <p className="text-lg text-gray-600 leading-relaxed max-w-3xl">
+                        <p className="text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed max-w-3xl px-2">
                           {slide.content}
                         </p>
                       </div>
@@ -156,17 +156,17 @@ export function HomePageContent() {
             {/* Botones de navegación */}
             <button
               onClick={prevSlide}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all hover:scale-110"
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all hover:scale-110 z-10"
               aria-label="Slide anterior"
             >
-              <ChevronLeft className="w-6 h-6 text-gray-700" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
             </button>
             <button
               onClick={nextSlide}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all hover:scale-110"
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all hover:scale-110 z-10"
               aria-label="Siguiente slide"
             >
-              <ChevronRight className="w-6 h-6 text-gray-700" />
+              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
             </button>
           </div>
 
@@ -189,7 +189,7 @@ export function HomePageContent() {
       </div>
 
       {/* Feature Cards */}
-      <div className="grid md:grid-cols-2 gap-8 mb-20">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12 md:mb-16 lg:mb-20">
         <a href="/mapa-interactivo">
           <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-b-4 border-b-emerald-500">
             <CardHeader>
@@ -222,15 +222,15 @@ export function HomePageContent() {
         </a>
       </div>
 
-      <div id="precios-section" className="text-center mb-12">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">Planes y Precios</h2>
-        <p className="text-lg text-gray-600">
+      <div id="precios-section" className="text-center mb-8 md:mb-12 px-4">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 md:mb-4">Planes y Precios</h2>
+        <p className="text-base md:text-lg text-gray-600">
           Elige el plan que mejor se adapte a tus necesidades.
         </p>
       </div>
 
       {/* Pricing Section */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10 md:mb-12">
         {pricingPlans.map(plan => (
           <PricingCard key={plan.title} {...plan} />
         ))}

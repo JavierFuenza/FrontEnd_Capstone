@@ -66,6 +66,9 @@ export function GraficosPageContent() {
   // Estado para filtro de años
   const [yearsFilter, setYearsFilter] = useState<number | null>(null);
 
+  // Estado para vista temporal (mensual/anual)
+  const [temporalView, setTemporalView] = useState<'mensual' | 'anual'>('mensual');
+
   // Estado para el formulario de agregar línea
   const [formData, setFormData] = useState({
     region: "",
@@ -238,6 +241,84 @@ export function GraficosPageContent() {
     setSubmetricas([]);
   };
 
+  // Función para parsear fechas en formato "YYYY Mes" o "YYYY-MM" a Date
+  const parseMonthYear = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
+
+    const monthNames: Record<string, number> = {
+      'Enero': 0, 'Febrero': 1, 'Marzo': 2, 'Abril': 3,
+      'Mayo': 4, 'Junio': 5, 'Julio': 6, 'Agosto': 7,
+      'Septiembre': 8, 'Octubre': 9, 'Noviembre': 10, 'Diciembre': 11
+    };
+
+    // Intentar parsear formato "YYYY Mes"
+    const parts = dateStr.trim().split(' ');
+    if (parts.length === 2) {
+      const year = parseInt(parts[0]);
+      const month = monthNames[parts[1]];
+      if (!isNaN(year) && month !== undefined) {
+        return new Date(year, month, 1);
+      }
+    }
+
+    // Intentar parsear formato "YYYY-MM"
+    const dateParts = dateStr.split('-');
+    if (dateParts.length >= 2) {
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1;
+      if (!isNaN(year) && !isNaN(month)) {
+        return new Date(year, month, 1);
+      }
+    }
+
+    return null;
+  };
+
+  // Función para agrupar datos mensuales por año
+  const aggregateByYear = (monthlyData: any[]) => {
+    const yearGroups: { [key: string]: { [lineId: string]: number[] } } = {};
+
+    monthlyData.forEach(item => {
+      const periodo = item.periodo;
+      const yearMatch = periodo?.toString().match(/(\d{4})/);
+      if (!yearMatch) return;
+
+      const year = yearMatch[1];
+      if (!yearGroups[year]) {
+        yearGroups[year] = {};
+      }
+
+      // Agrupar valores por línea
+      Object.keys(item).forEach(key => {
+        if (key !== 'periodo') {
+          if (!yearGroups[year][key]) {
+            yearGroups[year][key] = [];
+          }
+          const value = item[key];
+          if (value !== null && value !== undefined && value !== '' && !isNaN(value)) {
+            yearGroups[year][key].push(Number(value));
+          }
+        }
+      });
+    });
+
+    // Calcular promedios anuales
+    return Object.keys(yearGroups).map(year => {
+      const result: any = { periodo: year };
+      Object.keys(yearGroups[year]).forEach(lineId => {
+        const values = yearGroups[year][lineId];
+        if (values && values.length > 0) {
+          result[lineId] = values.reduce((a, b) => a + b, 0) / values.length;
+        }
+      });
+      return result;
+    }).sort((a, b) => {
+      const yearA = parseInt(a.periodo);
+      const yearB = parseInt(b.periodo);
+      return yearA - yearB;
+    });
+  };
+
   // Preparar datos para el gráfico combinando todas las líneas
   const prepararDatosGrafico = () => {
     if (lines.length === 0) return [];
@@ -278,9 +359,16 @@ export function GraficosPageContent() {
     });
 
     // Convertir a array y ordenar por periodo
-    return Array.from(periodoMap.values()).sort((a, b) => {
+    let resultado = Array.from(periodoMap.values()).sort((a, b) => {
       return a.periodo.localeCompare(b.periodo);
     });
+
+    // Si está en vista anual, agrupar por año
+    if (temporalView === 'anual' && resultado.length > 0) {
+      resultado = aggregateByYear(resultado);
+    }
+
+    return resultado;
   };
 
   const datosGrafico = prepararDatosGrafico();
@@ -335,11 +423,11 @@ export function GraficosPageContent() {
 
   return (
     <>
-      <div className="pt-32 pb-16 max-w-7xl mx-auto px-6">
+      <div className="pt-20 md:pt-28 lg:pt-32 pb-8 md:pb-12 lg:pb-16 max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header con botón de glosario */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <h1 className="text-4xl font-bold text-gray-900">Gráficos Personalizados</h1>
+        <div className="text-center mb-6 md:mb-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-3 md:mb-4">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">Gráficos Personalizados</h1>
             <Button
               onClick={() => setShowGlosario(true)}
               className="bg-emerald-600 hover:bg-emerald-700"
@@ -349,14 +437,14 @@ export function GraficosPageContent() {
               Glosario
             </Button>
           </div>
-          <p className="text-lg text-gray-600">
+          <p className="text-base md:text-lg text-gray-600 px-4">
             Crea gráficos personalizados combinando métricas ambientales
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
           {/* Panel de Configuración - Vertical */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-4 md:space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Configuración de Datos</CardTitle>
@@ -598,10 +686,10 @@ export function GraficosPageContent() {
           </div>
 
           {/* Área del Gráfico - Horizontal */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-4 md:space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-emerald-600" />
                     Visualización
@@ -609,7 +697,32 @@ export function GraficosPageContent() {
 
                   {/* Controles de filtro y descarga */}
                   {lines.length > 0 && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3 flex-wrap w-full sm:w-auto">
+                      {/* Toggle Mensual/Anual */}
+                      {datosGrafico.length > 12 && (
+                        <button
+                          onClick={() => setTemporalView(prev => prev === 'mensual' ? 'anual' : 'mensual')}
+                          className="relative inline-flex h-9 w-28 items-center rounded-full bg-gray-200 transition-colors hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 flex-shrink-0"
+                          title={`Cambiar a vista ${temporalView === 'mensual' ? 'anual' : 'mensual'}`}
+                        >
+                          <span
+                            className={`inline-flex h-8 w-14 items-center justify-center rounded-full bg-white shadow-md transform transition-transform duration-300 ease-in-out ${
+                              temporalView === 'anual' ? 'translate-x-[52px]' : 'translate-x-0.5'
+                            }`}
+                          >
+                            <span className="text-xs font-semibold text-gray-900">
+                              {temporalView === 'mensual' ? 'Mensual' : 'Anual'}
+                            </span>
+                          </span>
+                          <span className="absolute left-1.5 text-xs font-medium text-gray-600 pointer-events-none">
+                            {temporalView === 'mensual' ? '' : 'Mensual'}
+                          </span>
+                          <span className="absolute right-2 text-xs font-medium text-gray-600 pointer-events-none">
+                            {temporalView === 'anual' ? '' : 'Anual'}
+                          </span>
+                        </button>
+                      )}
+
                       {/* Filtro por años */}
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-gray-600" />
@@ -644,30 +757,40 @@ export function GraficosPageContent() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="h-[600px] pt-4" ref={chartRef}>
+              <CardContent className="h-[400px] md:h-[500px] lg:h-[600px] pt-4" ref={chartRef}>
                 {lines.length === 0 ? (
                   // Skeleton del gráfico vacío
-                  <div className="h-full flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 rounded-lg">
-                    <svg className="w-16 h-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="h-full flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 rounded-lg px-4">
+                    <svg className="w-12 h-12 md:w-16 md:h-16 mb-3 md:mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                     </svg>
-                    <p className="text-lg font-medium">Agrega datos para ver el gráfico</p>
-                    <p className="text-sm mt-2">Selecciona Región → Estación → Métrica → Submétrica</p>
+                    <p className="text-base md:text-lg font-medium text-center">Agrega datos para ver el gráfico</p>
+                    <p className="text-xs md:text-sm mt-2 text-center">Selecciona Región → Estación → Métrica → Submétrica</p>
                   </div>
                 ) : (
                   // Gráfico con datos
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={datosGrafico} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <LineChart data={datosGrafico} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="periodo"
                         angle={-45}
                         textAnchor="end"
                         height={80}
+                        tick={{ fontSize: 10 }}
+                        label={{
+                          value: temporalView === 'anual' ? 'Año' : 'Período',
+                          position: 'insideBottom',
+                          offset: -10,
+                          style: { fontSize: 11, fontWeight: '600', fill: '#374151' }
+                        }}
                       />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
+                      <YAxis tick={{ fontSize: 10 }} width={60} />
+                      <Tooltip
+                        contentStyle={{ fontSize: 12 }}
+                        wrapperStyle={{ zIndex: 1000 }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
                       {lines.filter(line => !line.loading).map((line) => (
                         <Line
                           key={line.id}

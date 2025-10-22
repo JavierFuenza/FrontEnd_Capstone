@@ -987,7 +987,7 @@ export function GraficosPageContent() {
                         label={{
                           value: temporalView === 'anual' ? 'Año' : 'Período',
                           position: 'insideBottom',
-                          offset: -10,
+                          offset: 30,
                           style: { fontSize: 11, fontWeight: '600', fill: '#374151' }
                         }}
                       />

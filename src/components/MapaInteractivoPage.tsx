@@ -1,12 +1,14 @@
 // src/components/MapaInteractivoPage.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, X, BarChart3, Maximize2, Calendar, TrendingUp, Info, Loader2 } from "lucide-react";
+import { Search, MapPin, X, BarChart3, Maximize2, Calendar, TrendingUp, Info, Loader2, Download, BookOpen } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
 import { Map } from './Map';
 import { Badge } from "@/components/ui/badge";
+import { GlosarioModal } from './GlosarioModal';
+import html2canvas from 'html2canvas';
 
 interface Estacion {
     id: number;
@@ -102,6 +104,12 @@ export function MapaInteractivoPage() {
 
     // Force modal re-render counter
     const [modalRenderKey, setModalRenderKey] = useState(0);
+
+    // Glosario modal state
+    const [showGlosario, setShowGlosario] = useState(false);
+
+    // Ref para captura de pantalla
+    const contentRef = useRef<HTMLDivElement>(null);
 
     // Fetch estaciones desde el backend
     useEffect(() => {
@@ -432,6 +440,67 @@ export function MapaInteractivoPage() {
         });
     };
 
+    // Función para descargar toda la información visible como PNG
+    const descargarInformacion = async () => {
+        if (!contentRef.current) return;
+
+        try {
+            // Guardamos el scroll original
+            const element = contentRef.current;
+            const originalHeight = element.style.height;
+            const originalOverflow = element.style.overflow;
+            const originalMaxHeight = element.style.maxHeight;
+            const scrollTop = element.scrollTop;
+
+            // Expandimos temporalmente el elemento para capturar todo el contenido
+            element.style.height = 'auto';
+            element.style.maxHeight = 'none';
+            element.style.overflow = 'visible';
+
+            // Esperamos un momento para que los gráficos se re-rendericen correctamente
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Capturamos con html2canvas
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                windowHeight: element.scrollHeight,
+                height: element.scrollHeight,
+                onclone: (clonedDoc) => {
+                    // Buscamos todos los divs con overflow auto/scroll en el documento clonado
+                    const scrollableElements = clonedDoc.querySelectorAll('.overflow-y-auto, .overflow-auto, .overflow-scroll');
+                    scrollableElements.forEach((el: any) => {
+                        el.style.overflow = 'visible';
+                        el.style.maxHeight = 'none';
+                        el.style.height = 'auto';
+                    });
+                }
+            });
+
+            // Restauramos el estado original
+            element.style.height = originalHeight;
+            element.style.maxHeight = originalMaxHeight;
+            element.style.overflow = originalOverflow;
+            element.scrollTop = scrollTop;
+
+            const link = document.createElement('a');
+            const metricaActual = selectedMetric === 'temperatura' ? 'Temperatura'
+                : selectedMetric === 'mp25' ? 'MP2.5'
+                : selectedMetric === 'mp10' ? 'MP10'
+                : selectedMetric.toUpperCase();
+
+            const estacionNombre = selectedEstacion?.nombre.replace(/\s+/g, '_') || 'estacion';
+            link.download = `Mapa_${estacionNombre}_${metricaActual}_${new Date().toLocaleDateString('es-ES').replace(/\//g, '-')}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        } catch (error) {
+            console.error('Error al descargar la información:', error);
+            alert('Hubo un error al descargar la imagen. Por favor, intenta nuevamente.');
+        }
+    };
+
     // Función genérica para renderizar gráfico con botón de expansión y funcionalidades avanzadas
     const renderGenericChart = (
         data: any[],
@@ -699,14 +768,12 @@ export function MapaInteractivoPage() {
                                 dataKey={displayXAxisKey}
                                 tick={{ fontSize: 11 }}
                                 tickMargin={8}
-                                {...(currentView !== 'anual' ? {
-                                    label: {
-                                        value: '',
-                                        position: 'insideBottom',
-                                        offset: -10,
-                                        style: { fontSize: 13, fontWeight: '600', fill: '#374151' }
-                                    }
-                                } : {})}
+                                label={{
+                                    value: currentView === 'anual' ? 'Año' : 'Periodo',
+                                    position: 'insideBottom',
+                                    offset: -10,
+                                    style: { fontSize: 13, fontWeight: '600', fill: '#374151' }
+                                }}
                                 height={60}
                             />
                             <YAxis
@@ -1269,13 +1336,33 @@ export function MapaInteractivoPage() {
                                     <p className="text-sm text-gray-500 truncate">{selectedEstacion.descripcion}</p>
                                 </div>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setRightSidebarOpen(false)}
-                            >
-                                <X className="w-5 h-5" />
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={descargarInformacion}
+                                    className="flex items-center gap-2"
+                                    title="Descargar como PNG"
+                                >
+                                    <Download className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowGlosario(true)}
+                                    className="flex items-center gap-2"
+                                    title="Ver Glosario"
+                                >
+                                    <BookOpen className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setRightSidebarOpen(false)}
+                                >
+                                    <X className="w-5 h-5" />
+                                </Button>
+                            </div>
                         </div>
 
                         {/* Tabs de métricas */}
@@ -1296,7 +1383,7 @@ export function MapaInteractivoPage() {
                         </div>
 
                         {/* Contenido del gráfico */}
-                        <div className="flex-1 overflow-y-auto p-4 pb-16 space-y-4">
+                        <div ref={contentRef} className="flex-1 overflow-y-auto p-4 pb-16 space-y-4">
                             {renderMetricCharts()}
                         </div>
                     </>
@@ -1475,14 +1562,12 @@ export function MapaInteractivoPage() {
                                             angle={-45}
                                             textAnchor="end"
                                             tickMargin={10}
-                                            {...(currentView !== 'anual' ? {
-                                                label: {
-                                                    value: '',
-                                                    position: 'insideBottom',
-                                                    offset: 5,
-                                                    style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
-                                                }
-                                            } : {})}
+                                            label={{
+                                                value: currentView === 'anual' ? 'Año' : 'Periodo',
+                                                position: 'insideBottom',
+                                                offset: 5,
+                                                style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
+                                            }}
                                             height={130}
                                             interval="preserveStartEnd"
                                         />
@@ -1538,14 +1623,12 @@ export function MapaInteractivoPage() {
                                             angle={-45}
                                             textAnchor="end"
                                             tickMargin={10}
-                                            {...(currentView !== 'anual' ? {
-                                                label: {
-                                                    value: '',
-                                                    position: 'insideBottom',
-                                                    offset: 5,
-                                                    style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
-                                                }
-                                            } : {})}
+                                            label={{
+                                                value: currentView === 'anual' ? 'Año' : 'Periodo',
+                                                position: 'insideBottom',
+                                                offset: 5,
+                                                style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
+                                            }}
                                             height={130}
                                             interval="preserveStartEnd"
                                         />
@@ -1653,6 +1736,9 @@ export function MapaInteractivoPage() {
                     </div>
                 );
             })()}
+
+            {/* Modal de Glosario */}
+            <GlosarioModal isOpen={showGlosario} onClose={() => setShowGlosario(false)} />
         </div>
     );
 }

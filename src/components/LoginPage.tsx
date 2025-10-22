@@ -40,7 +40,7 @@ export function LoginPage() {
       } else if (err.code === 'auth/configuration-not-found') {
         setError("⚠️ Firebase Authentication no está configurado. El administrador debe habilitar Email/Password en la consola de Firebase.");
       } else {
-        setError(`Error al iniciar sesión: ${err.message || 'Intenta nuevamente'}`);
+        setError("No se pudo iniciar sesión. Error de contraseña o usuario");
       }
     } finally {
       setLoading(false);

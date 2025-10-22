@@ -31,11 +31,37 @@ interface MetricData {
 }
 
 export function MapaInteractivoPage() {
+    // Helper para cargar datos desde localStorage
+    const getFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
+        if (typeof window === 'undefined') return defaultValue;
+        try {
+            const item = window.localStorage.getItem(key);
+            return item ? JSON.parse(item) : defaultValue;
+        } catch (error) {
+            console.error(`Error loading ${key} from localStorage:`, error);
+            return defaultValue;
+        }
+    };
+
+    // Helper para guardar datos en localStorage
+    const saveToLocalStorage = <T,>(key: string, value: T) => {
+        if (typeof window === 'undefined') return;
+        try {
+            window.localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+            console.error(`Error saving ${key} to localStorage:`, error);
+        }
+    };
+
     const [searchTerm, setSearchTerm] = useState("");
     const [estaciones, setEstaciones] = useState<Estacion[]>([]);
     const [filteredEstaciones, setFilteredEstaciones] = useState<Estacion[]>([]);
-    const [selectedEstacion, setSelectedEstacion] = useState<Estacion | null>(null);
-    const [selectedMetric, setSelectedMetric] = useState<MetricType>('temperatura');
+    const [selectedEstacion, setSelectedEstacion] = useState<Estacion | null>(() =>
+        getFromLocalStorage('mapa_selectedEstacion', null)
+    );
+    const [selectedMetric, setSelectedMetric] = useState<MetricType>(() =>
+        getFromLocalStorage('mapa_selectedMetric', 'temperatura')
+    );
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [metricData, setMetricData] = useState<MetricData>({});
@@ -44,8 +70,12 @@ export function MapaInteractivoPage() {
 
 
     // Sidebar states
-    const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
-    const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
+    const [leftSidebarOpen, setLeftSidebarOpen] = useState(() =>
+        getFromLocalStorage('mapa_leftSidebarOpen', true)
+    );
+    const [rightSidebarOpen, setRightSidebarOpen] = useState(() =>
+        getFromLocalStorage('mapa_rightSidebarOpen', false)
+    );
 
     // Modal state for chart expansion
     const [expandedChart, setExpandedChart] = useState<{
@@ -58,13 +88,17 @@ export function MapaInteractivoPage() {
     } | null>(null);
 
     // Temporal view states for each chart (keyed by chartKey)
-    const [chartViews, setChartViews] = useState<Record<string, 'mensual' | 'anual'>>({});
+    const [chartViews, setChartViews] = useState<Record<string, 'mensual' | 'anual'>>(() =>
+        getFromLocalStorage('mapa_chartViews', {})
+    );
 
     // Stats visibility states for each chart (keyed by chartKey)
     const [statsVisible, setStatsVisible] = useState<Record<string, boolean>>({});
 
     // Time range filter states for temperature charts (keyed by chartKey)
-    const [timeRangeFilters, setTimeRangeFilters] = useState<Record<string, '1year' | '2years' | '5years' | 'all'>>({});
+    const [timeRangeFilters, setTimeRangeFilters] = useState<Record<string, '1year' | '2years' | '5years' | 'all'>>(() =>
+        getFromLocalStorage('mapa_timeRangeFilters', {})
+    );
 
     // Force modal re-render counter
     const [modalRenderKey, setModalRenderKey] = useState(0);
@@ -105,6 +139,46 @@ export function MapaInteractivoPage() {
         );
         setFilteredEstaciones(filtered);
     }, [searchTerm, estaciones]);
+
+    // Persistir estado en localStorage
+    useEffect(() => {
+        saveToLocalStorage('mapa_selectedEstacion', selectedEstacion);
+    }, [selectedEstacion]);
+
+    useEffect(() => {
+        saveToLocalStorage('mapa_selectedMetric', selectedMetric);
+    }, [selectedMetric]);
+
+    useEffect(() => {
+        saveToLocalStorage('mapa_leftSidebarOpen', leftSidebarOpen);
+    }, [leftSidebarOpen]);
+
+    useEffect(() => {
+        saveToLocalStorage('mapa_rightSidebarOpen', rightSidebarOpen);
+    }, [rightSidebarOpen]);
+
+    useEffect(() => {
+        saveToLocalStorage('mapa_chartViews', chartViews);
+    }, [chartViews]);
+
+    useEffect(() => {
+        saveToLocalStorage('mapa_timeRangeFilters', timeRangeFilters);
+    }, [timeRangeFilters]);
+
+    // Restaurar métrica cuando se carga una estación guardada
+    useEffect(() => {
+        if (selectedEstacion && estaciones.length > 0) {
+            // Verificar que la estación guardada todavía existe
+            const exists = estaciones.find(e => e.id === selectedEstacion.id);
+            if (exists) {
+                checkAvailableMetrics(selectedEstacion);
+                setRightSidebarOpen(true);
+            } else {
+                // Si la estación ya no existe, limpiar la selección
+                setSelectedEstacion(null);
+            }
+        }
+    }, [estaciones]);
 
     // Función para determinar métricas disponibles
     const checkAvailableMetrics = async (estacion: Estacion) => {
@@ -468,7 +542,7 @@ export function MapaInteractivoPage() {
                         <p className="font-semibold text-gray-900 mb-2">{label}</p>
                         {payload.map((entry: any, index: number) => (
                             <p key={index} className="text-sm" style={{ color: entry.color }}>
-                                {entry.name}: <span className="font-bold">{entry.value?.toFixed(2)}{unit}</span>
+                                {entry.name}: <span className="font-bold">{Math.trunc(entry.value * 10) / 10}{unit}</span>
                             </p>
                         ))}
                     </div>
@@ -595,19 +669,19 @@ export function MapaInteractivoPage() {
                                             <div className="grid grid-cols-2 gap-2 text-xs">
                                                 <Badge variant="outline" className="bg-blue-50 border-blue-200 justify-between">
                                                     <span className="font-medium">Promedio:</span>
-                                                    <span className="font-bold">{stat.mean.toFixed(2)}{unit}</span>
+                                                    <span className="font-bold">{(Math.trunc(stat.mean * 10) / 10).toFixed(1)}{unit}</span>
                                                 </Badge>
                                                 <Badge variant="outline" className="bg-purple-50 border-purple-200 justify-between">
                                                     <span className="font-medium">Mediana:</span>
-                                                    <span className="font-bold">{stat.median.toFixed(2)}{unit}</span>
+                                                    <span className="font-bold">{(Math.trunc(stat.median * 10) / 10).toFixed(1)}{unit}</span>
                                                 </Badge>
                                                 <Badge variant="outline" className="bg-green-50 border-green-200 justify-between">
                                                     <span className="font-medium">Máximo:</span>
-                                                    <span className="font-bold">{stat.max.toFixed(2)}{unit}</span>
+                                                    <span className="font-bold">{(Math.trunc(stat.max * 10) / 10).toFixed(1)}{unit}</span>
                                                 </Badge>
                                                 <Badge variant="outline" className="bg-orange-50 border-orange-200 justify-between">
                                                     <span className="font-medium">Mínimo:</span>
-                                                    <span className="font-bold">{stat.min.toFixed(2)}{unit}</span>
+                                                    <span className="font-bold">{(Math.trunc(stat.min * 10) / 10).toFixed(1)}{unit}</span>
                                                 </Badge>
                                             </div>
                                         </div>
@@ -619,17 +693,20 @@ export function MapaInteractivoPage() {
                 </CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={280}>
-                        <ChartComponent data={displayData} margin={{ top: 10, right: 30, left: 0, bottom: 25 }}>
+                        <ChartComponent data={displayData} margin={{ top: 10, right: 30, left: 0, bottom: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                             <XAxis
                                 dataKey={displayXAxisKey}
                                 tick={{ fontSize: 11 }}
-                                label={{
-                                    value: currentView === 'anual' ? 'Año' : 'Mes',
-                                    position: 'insideBottom',
-                                    offset: -10,
-                                    style: { fontSize: 13, fontWeight: '600', fill: '#374151' }
-                                }}
+                                tickMargin={8}
+                                {...(currentView !== 'anual' ? {
+                                    label: {
+                                        value: '',
+                                        position: 'insideBottom',
+                                        offset: -10,
+                                        style: { fontSize: 13, fontWeight: '600', fill: '#374151' }
+                                    }
+                                } : {})}
                                 height={60}
                             />
                             <YAxis
@@ -1390,19 +1467,22 @@ export function MapaInteractivoPage() {
                             <div className="p-6">
                                 <ResponsiveContainer width="100%" height={600} key={`chart-${currentView}-${useBarChart}`}>
                                 {useBarChart ? (
-                                    <BarChart data={modalDisplayData} margin={{ top: 10, right: 40, left: 10, bottom: 25 }}>
+                                    <BarChart data={modalDisplayData} margin={{ top: 10, right: 40, left: 10, bottom: 60 }}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis
                                             dataKey={modalDisplayXAxisKey}
                                             tick={{ fontSize: 14 }}
                                             angle={-45}
                                             textAnchor="end"
-                                            label={{
-                                                value: currentView === 'anual' ? 'Año' : 'Mes',
-                                                position: 'insideBottom',
-                                                offset: 5,
-                                                style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
-                                            }}
+                                            tickMargin={10}
+                                            {...(currentView !== 'anual' ? {
+                                                label: {
+                                                    value: '',
+                                                    position: 'insideBottom',
+                                                    offset: 5,
+                                                    style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
+                                                }
+                                            } : {})}
                                             height={130}
                                             interval="preserveStartEnd"
                                         />
@@ -1450,19 +1530,22 @@ export function MapaInteractivoPage() {
                                         })}
                                     </BarChart>
                                 ) : (
-                                    <LineChart data={modalDisplayData} margin={{ top: 10, right: 40, left: 10, bottom: 25 }}>
+                                    <LineChart data={modalDisplayData} margin={{ top: 10, right: 40, left: 10, bottom: 60 }}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis
                                             dataKey={modalDisplayXAxisKey}
                                             tick={{ fontSize: 14 }}
                                             angle={-45}
                                             textAnchor="end"
-                                            label={{
-                                                value: currentView === 'anual' ? 'Año' : 'Mes',
-                                                position: 'insideBottom',
-                                                offset: 5,
-                                                style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
-                                            }}
+                                            tickMargin={10}
+                                            {...(currentView !== 'anual' ? {
+                                                label: {
+                                                    value: '',
+                                                    position: 'insideBottom',
+                                                    offset: 5,
+                                                    style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
+                                                }
+                                            } : {})}
                                             height={130}
                                             interval="preserveStartEnd"
                                         />
@@ -1544,19 +1627,19 @@ export function MapaInteractivoPage() {
                                                         <div className="grid grid-cols-2 gap-2 text-sm">
                                                             <Badge variant="outline" className="bg-blue-50 border-blue-200 justify-between">
                                                                 <span className="font-medium">Promedio:</span>
-                                                                <span className="font-bold">{stat.mean.toFixed(2)}{expandedChart.config.unit}</span>
+                                                                <span className="font-bold">{(Math.trunc(stat.mean * 10) / 10).toFixed(1)}{expandedChart.config.unit}</span>
                                                             </Badge>
                                                             <Badge variant="outline" className="bg-purple-50 border-purple-200 justify-between">
                                                                 <span className="font-medium">Mediana:</span>
-                                                                <span className="font-bold">{stat.median.toFixed(2)}{expandedChart.config.unit}</span>
+                                                                <span className="font-bold">{(Math.trunc(stat.median * 10) / 10).toFixed(1)}{expandedChart.config.unit}</span>
                                                             </Badge>
                                                             <Badge variant="outline" className="bg-green-50 border-green-200 justify-between">
                                                                 <span className="font-medium">Máximo:</span>
-                                                                <span className="font-bold">{stat.max.toFixed(2)}{expandedChart.config.unit}</span>
+                                                                <span className="font-bold">{(Math.trunc(stat.max * 10) / 10).toFixed(1)}{expandedChart.config.unit}</span>
                                                             </Badge>
                                                             <Badge variant="outline" className="bg-orange-50 border-orange-200 justify-between">
                                                                 <span className="font-medium">Mínimo:</span>
-                                                                <span className="font-bold">{stat.min.toFixed(2)}{expandedChart.config.unit}</span>
+                                                                <span className="font-bold">{(Math.trunc(stat.min * 10) / 10).toFixed(1)}{expandedChart.config.unit}</span>
                                                             </Badge>
                                                         </div>
                                                     </div>

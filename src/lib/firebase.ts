@@ -19,7 +19,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Authentication
+// Firebase usa browserLocalPersistence por defecto, por lo que la sesión persiste automáticamente
 export const auth = getAuth(app);
+
+console.log('[Firebase] Auth inicializado correctamente. Persistencia: LOCAL (por defecto)');
 
 // Initialize Analytics (only on client-side)
 let analytics;

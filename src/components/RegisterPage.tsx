@@ -52,7 +52,7 @@ export function RegisterPage() {
       } else if (err.code === 'auth/configuration-not-found') {
         setError("⚠️ Firebase Authentication no está configurado. El administrador debe habilitar Email/Password en la consola de Firebase.");
       } else {
-        setError(`Error al crear la cuenta: ${err.message || 'Intenta nuevamente'}`);
+        setError("No se pudo crear la cuenta. Por favor, intenta nuevamente");
       }
     } finally {
       setLoading(false);

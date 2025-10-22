@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Plus, Trash2, Loader2, BookOpen, Info, TrendingUp, AlertCircle, Download, Calendar } from 'lucide-react';
+import { Plus, Trash2, Loader2, BookOpen, Info, TrendingUp, AlertCircle, Download, Calendar, Save, Eye, X, BarChart3 } from 'lucide-react';
 import { GlosarioModal } from './GlosarioModal';
 import { AnalisisCorrelacion } from './AnalisisCorrelacion';
 import html2canvas from 'html2canvas';
@@ -57,26 +57,56 @@ const DESCRIPCIONES_RAPIDAS: Record<string, string> = {
 };
 
 export function GraficosPageContent() {
+  // Helper para cargar datos desde localStorage
+  const getFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
+    if (typeof window === 'undefined') return defaultValue;
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+      console.error(`Error loading ${key} from localStorage:`, error);
+      return defaultValue;
+    }
+  };
+
+  // Helper para guardar datos en localStorage
+  const saveToLocalStorage = <T,>(key: string, value: T) => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error(`Error saving ${key} to localStorage:`, error);
+    }
+  };
+
   // Estado para las líneas del gráfico
-  const [lines, setLines] = useState<LineConfig[]>([]);
+  const [lines, setLines] = useState<LineConfig[]>(() =>
+    getFromLocalStorage('graficos_lines', [])
+  );
 
   // Referencia al contenedor del gráfico para exportar
   const chartRef = useRef<HTMLDivElement>(null);
 
   // Estado para filtro de años
-  const [yearsFilter, setYearsFilter] = useState<number | null>(null);
+  const [yearsFilter, setYearsFilter] = useState<number | null>(() =>
+    getFromLocalStorage('graficos_yearsFilter', null)
+  );
 
   // Estado para vista temporal (mensual/anual)
-  const [temporalView, setTemporalView] = useState<'mensual' | 'anual'>('mensual');
+  const [temporalView, setTemporalView] = useState<'mensual' | 'anual'>(() =>
+    getFromLocalStorage('graficos_temporalView', 'mensual')
+  );
 
   // Estado para el formulario de agregar línea
-  const [formData, setFormData] = useState({
-    region: "",
-    estacion: "",
-    estacionId: null as number | null,
-    metrica: "",
-    submetrica: ""
-  });
+  const [formData, setFormData] = useState(() =>
+    getFromLocalStorage('graficos_formData', {
+      region: "",
+      estacion: "",
+      estacionId: null as number | null,
+      metrica: "",
+      submetrica: ""
+    })
+  );
 
   // Estados para las opciones de los selects
   const [regiones, setRegiones] = useState<Region[]>([]);
@@ -92,6 +122,27 @@ export function GraficosPageContent() {
 
   // Estado del modal de glosario
   const [showGlosario, setShowGlosario] = useState(false);
+
+  // Estado para tabs (Crear / Ver Guardados)
+  const [activeTab, setActiveTab] = useState<'crear' | 'guardados'>('crear');
+
+  // Estado para gráficos guardados
+  interface SavedChart {
+    id: string;
+    nombre: string;
+    lines: LineConfig[];
+    yearsFilter: number | null;
+    temporalView: 'mensual' | 'anual';
+    fechaCreacion: string;
+  }
+
+  const [savedCharts, setSavedCharts] = useState<SavedChart[]>(() =>
+    getFromLocalStorage('graficos_savedCharts', [])
+  );
+
+  // Estado para modal de guardar gráfico
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [chartName, setChartName] = useState('');
 
   // 1️⃣ Cargar regiones al inicio
   useEffect(() => {
@@ -168,6 +219,70 @@ export function GraficosPageContent() {
       });
   }, [formData.metrica, formData.estacionId]);
 
+  // Persistir estado en localStorage
+  useEffect(() => {
+    saveToLocalStorage('graficos_lines', lines);
+  }, [lines]);
+
+  useEffect(() => {
+    saveToLocalStorage('graficos_yearsFilter', yearsFilter);
+  }, [yearsFilter]);
+
+  useEffect(() => {
+    saveToLocalStorage('graficos_temporalView', temporalView);
+  }, [temporalView]);
+
+  useEffect(() => {
+    saveToLocalStorage('graficos_formData', formData);
+  }, [formData]);
+
+  // Persist saved charts
+  useEffect(() => {
+    saveToLocalStorage('graficos_savedCharts', savedCharts);
+  }, [savedCharts]);
+
+  // Recargar datos de líneas guardadas al montar el componente
+  useEffect(() => {
+    // Solo recargar si hay líneas guardadas y no tienen datos
+    if (lines.length > 0) {
+      lines.forEach(line => {
+        if (line.datos.length === 0 && !line.loading) {
+          // Recargar datos de la línea
+          recargarLineaDesdeAPI(line);
+        }
+      });
+    }
+  }, []); // Solo ejecutar al montar
+
+  // Función auxiliar para recargar datos de una línea desde la API
+  const recargarLineaDesdeAPI = async (line: LineConfig) => {
+    try {
+      // Marcar como cargando
+      setLines(prev => prev.map(l =>
+        l.id === line.id ? { ...l, loading: true } : l
+      ));
+
+      const response = await fetch(
+        `${API_BASE_URL}/metricas/${encodeURIComponent(line.metrica)}/${encodeURIComponent(line.estacion)}?submetrica=${encodeURIComponent(line.submetrica)}`
+      );
+
+      if (!response.ok) throw new Error('Error al cargar datos');
+
+      const data = await response.json();
+
+      // Actualizar con los datos
+      setLines(prev => prev.map(l =>
+        l.id === line.id ? { ...l, datos: data, loading: false } : l
+      ));
+    } catch (error) {
+      console.error(`Error recargando línea ${line.label}:`, error);
+      // Marcar como no cargando aunque haya error
+      setLines(prev => prev.map(l =>
+        l.id === line.id ? { ...l, loading: false } : l
+      ));
+    }
+  };
+
   // Función para agregar una nueva línea al gráfico
   const agregarLinea = async () => {
     if (!formData.region || !formData.estacion || !formData.metrica || !formData.submetrica || !formData.estacionId) {
@@ -239,6 +354,57 @@ export function GraficosPageContent() {
     setEstaciones([]);
     setMetricas([]);
     setSubmetricas([]);
+  };
+
+  // Función para guardar el gráfico actual
+  const guardarGrafico = () => {
+    if (lines.length === 0) {
+      alert("No hay líneas en el gráfico para guardar");
+      return;
+    }
+    setShowSaveModal(true);
+  };
+
+  // Función para confirmar el guardado con nombre
+  const confirmarGuardado = () => {
+    if (!chartName.trim()) {
+      alert("Por favor ingresa un nombre para el gráfico");
+      return;
+    }
+
+    const newChart: SavedChart = {
+      id: `${Date.now()}-${Math.random()}`,
+      nombre: chartName,
+      lines: lines,
+      yearsFilter: yearsFilter,
+      temporalView: temporalView,
+      fechaCreacion: new Date().toISOString()
+    };
+
+    setSavedCharts(prev => [...prev, newChart]);
+    setShowSaveModal(false);
+    setChartName('');
+    alert(`Gráfico "${chartName}" guardado exitosamente`);
+  };
+
+  // Función para cargar un gráfico guardado
+  const cargarGrafico = (chart: SavedChart) => {
+    setLines(chart.lines);
+    setYearsFilter(chart.yearsFilter);
+    setTemporalView(chart.temporalView);
+    setActiveTab('crear');
+
+    // Recargar datos de las líneas
+    chart.lines.forEach(line => {
+      recargarLineaDesdeAPI(line);
+    });
+  };
+
+  // Función para eliminar un gráfico guardado
+  const eliminarGraficoGuardado = (chartId: string) => {
+    if (confirm("¿Estás seguro de eliminar este gráfico guardado?")) {
+      setSavedCharts(prev => prev.filter(chart => chart.id !== chartId));
+    }
   };
 
   // Función para parsear fechas en formato "YYYY Mes" o "YYYY-MM" a Date
@@ -442,9 +608,38 @@ export function GraficosPageContent() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
-          {/* Panel de Configuración - Vertical */}
-          <div className="lg:col-span-4 space-y-4 md:space-y-6">
+        {/* Tabs para Crear / Ver Guardados */}
+        <div className="mb-6">
+          <div className="flex gap-2 border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('crear')}
+              className={`px-6 py-3 font-semibold transition-all border-b-2 ${
+                activeTab === 'crear'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Plus className="w-4 h-4 inline-block mr-2" />
+              Crear Gráficos
+            </button>
+            <button
+              onClick={() => setActiveTab('guardados')}
+              className={`px-6 py-3 font-semibold transition-all border-b-2 ${
+                activeTab === 'guardados'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 inline-block mr-2" />
+              Ver Guardados ({savedCharts.length})
+            </button>
+          </div>
+        </div>
+
+        {activeTab === 'crear' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+            {/* Panel de Configuración - Vertical */}
+            <div className="lg:col-span-4 space-y-4 md:space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Configuración de Datos</CardTitle>
@@ -743,16 +938,27 @@ export function GraficosPageContent() {
                         </Select>
                       </div>
 
-                      {/* Botón de descarga */}
-                      <Button
-                        onClick={descargarGrafico}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2"
-                      >
-                        <Download className="w-4 h-4" />
-                        Descargar PNG
-                      </Button>
+                      {/* Botones de descarga y guardado */}
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={guardarGrafico}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-2 bg-emerald-50 border-emerald-600 text-emerald-700 hover:bg-emerald-100"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Guardar
+                        </Button>
+                        <Button
+                          onClick={descargarGrafico}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Descargar PNG
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -813,7 +1019,138 @@ export function GraficosPageContent() {
             <AnalisisCorrelacion lines={lines} />
           </div>
         </div>
+        ) : (
+          <div className="space-y-6">
+            {savedCharts.length === 0 ? (
+              <Card>
+                <CardContent className="py-16">
+                  <div className="text-center text-gray-500">
+                    <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium mb-2">No hay gráficos guardados</p>
+                    <p className="text-sm">Crea un gráfico y guárdalo para verlo aquí</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {savedCharts.map(chart => (
+                  <Card key={chart.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        <span className="truncate">{chart.nombre}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => eliminarGraficoGuardado(chart.id)}
+                          className="flex-shrink-0 h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="text-sm text-gray-600">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>{new Date(chart.fechaCreacion).toLocaleDateString('es-ES')}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4" />
+                            <span>{chart.lines.length} línea{chart.lines.length > 1 ? 's' : ''}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          {chart.lines.slice(0, 3).map(line => (
+                            <div key={line.id} className="flex items-center gap-2 text-xs">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: line.color }} />
+                              <span className="truncate">{line.label}</span>
+                            </div>
+                          ))}
+                          {chart.lines.length > 3 && (
+                            <span className="text-xs text-gray-500">+{chart.lines.length - 3} más...</span>
+                          )}
+                        </div>
+
+                        <Button
+                          onClick={() => cargarGrafico(chart)}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700"
+                          size="sm"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Ver Gráfico
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Modal de Guardar Gráfico */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Guardar Gráfico</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowSaveModal(false);
+                    setChartName('');
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre del gráfico
+                </label>
+                <input
+                  type="text"
+                  value={chartName}
+                  onChange={(e) => setChartName(e.target.value)}
+                  placeholder="Ej: Comparación temperaturas 2023"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') confirmarGuardado();
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    setShowSaveModal(false);
+                    setChartName('');
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmarGuardado}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Guardar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Modal de Glosario */}
       <GlosarioModal isOpen={showGlosario} onClose={() => setShowGlosario(false)} />

@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import {
   type User,
+  type UserCredential,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -13,7 +14,7 @@ import { auth } from '@/lib/firebase';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signup: (email: string, password: string, displayName: string) => Promise<void>;
+  signup: (email: string, password: string, displayName: string) => Promise<UserCredential>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -86,6 +87,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Forzar actualización del estado
         setUser({ ...userCredential.user, displayName });
       }
+
+      return userCredential;
     } catch (error) {
       console.error('[AuthContext] Error en signup:', error);
       throw error;

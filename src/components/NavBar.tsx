@@ -89,7 +89,10 @@ export function NavBar() {
             <div className="w-20 h-9 bg-gray-100 animate-pulse rounded"></div>
           ) : user ? (
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg shadow-sm">
+              <a
+                href="/profile"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg shadow-sm hover:from-emerald-100 hover:to-emerald-150 hover:border-emerald-300 transition-all cursor-pointer"
+              >
                 <div className="relative">
                   <User className="w-5 h-5 text-emerald-700" />
                   <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></div>
@@ -102,7 +105,7 @@ export function NavBar() {
                     {user.displayName || user.email?.split('@')[0]}
                   </span>
                 </div>
-              </div>
+              </a>
               <Button
                 onClick={handleLogout}
                 variant="outline"
@@ -196,6 +199,17 @@ export function NavBar() {
                       </p>
                     </div>
                   </div>
+                  <a href="/profile">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-sm font-medium border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Ver Perfil
+                    </Button>
+                  </a>
                   <Button
                     onClick={handleLogout}
                     variant="outline"

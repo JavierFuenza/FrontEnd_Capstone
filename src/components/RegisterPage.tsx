@@ -3,7 +3,71 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle, Mail, X, Check } from "lucide-react";
+import { sendEmailVerification } from "firebase/auth";
+
+// Función para validar la contraseña
+const validatePassword = (password: string, email: string) => {
+  const errors: string[] = [];
+
+  // Mínimo 8 caracteres (más seguro que 6)
+  if (password.length < 8) {
+    errors.push("Debe tener al menos 8 caracteres");
+  }
+
+  // Mayúscula
+  if (!/[A-Z]/.test(password)) {
+    errors.push("Debe contener al menos una letra mayúscula");
+  }
+
+  // Minúscula
+  if (!/[a-z]/.test(password)) {
+    errors.push("Debe contener al menos una letra minúscula");
+  }
+
+  // Carácter especial
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    errors.push("Debe contener al menos un carácter especial (!@#$%^&*...)");
+  }
+
+  // No debe ser similar al email
+  if (email) {
+    const emailUsername = email.split('@')[0].toLowerCase();
+    const passwordLower = password.toLowerCase();
+
+    // Verificar si la contraseña contiene el username del email o viceversa
+    if (emailUsername.length > 3 && (
+      passwordLower.includes(emailUsername) ||
+      emailUsername.includes(passwordLower)
+    )) {
+      errors.push("No debe ser similar a tu correo electrónico");
+    }
+  }
+
+  return errors;
+};
+
+// Función para verificar cada requisito individual
+const getPasswordRequirements = (password: string, email: string) => {
+  return {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+    notSimilarToEmail: (() => {
+      if (!email) return true;
+      const emailUsername = email.split('@')[0].toLowerCase();
+      const passwordLower = password.toLowerCase();
+      if (emailUsername.length > 3 && (
+        passwordLower.includes(emailUsername) ||
+        emailUsername.includes(passwordLower)
+      )) {
+        return false;
+      }
+      return true;
+    })()
+  };
+};
 
 export function RegisterPage() {
   const [name, setName] = useState("");
@@ -12,8 +76,11 @@ export function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
 
   const { signup } = useAuth();
+
+  const passwordRequirements = getPasswordRequirements(password, email);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,15 +95,29 @@ export function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
+    // Validar contraseña con los nuevos requisitos
+    const passwordErrors = validatePassword(password, email);
+    if (passwordErrors.length > 0) {
+      setError(passwordErrors.join(". "));
       return;
     }
 
     try {
       setError("");
       setLoading(true);
-      await signup(email, password, name);
+      const userCredential = await signup(email, password, name);
+
+      // Enviar email de verificación
+      if (userCredential?.user) {
+        try {
+          await sendEmailVerification(userCredential.user);
+          console.log("Email de verificación enviado correctamente");
+        } catch (emailError) {
+          console.warn("No se pudo enviar el email de verificación:", emailError);
+          // No bloqueamos el registro si falla el envío del email
+        }
+      }
+
       // Redirigir a la página principal
       window.location.href = "/";
     } catch (err: any) {
@@ -115,10 +196,38 @@ export function RegisterPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setShowPasswordRequirements(true)}
                 required
                 disabled={loading}
               />
-              <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+
+              {showPasswordRequirements && password && (
+                <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-1">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Requisitos de contraseña:</p>
+                  <div className="space-y-1">
+                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.length ? 'text-green-600' : 'text-gray-500'}`}>
+                      {passwordRequirements.length ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>Al menos 8 caracteres</span>
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.uppercase ? 'text-green-600' : 'text-gray-500'}`}>
+                      {passwordRequirements.uppercase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>Una letra mayúscula (A-Z)</span>
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.lowercase ? 'text-green-600' : 'text-gray-500'}`}>
+                      {passwordRequirements.lowercase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>Una letra minúscula (a-z)</span>
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.special ? 'text-green-600' : 'text-gray-500'}`}>
+                      {passwordRequirements.special ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>Un carácter especial (!@#$%...)</span>
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.notSimilarToEmail ? 'text-green-600' : 'text-gray-500'}`}>
+                      {passwordRequirements.notSimilarToEmail ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      <span>No similar a tu correo electrónico</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

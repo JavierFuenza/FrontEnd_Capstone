@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Reglas para la colección de gráficos
+    match /graficos/{graficoId} {
+      // Permitir lectura solo si el usuario es el dueño del gráfico
+      allow read: if request.auth != null
+                  && request.auth.uid == resource.data.userId;
+
+      // Permitir crear solo si el usuario está autenticado
+      // y el userId del documento coincide con el uid del usuario
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.userId;
+
+      // Permitir actualizar solo si el usuario es el dueño del gráfico
+      // y no se intenta cambiar el userId
+      allow update: if request.auth != null
+                    && request.auth.uid == resource.data.userId
+                    && request.auth.uid == request.resource.data.userId;
+
+      // Permitir eliminar solo si el usuario es el dueño del gráfico
+      allow delete: if request.auth != null
+                    && request.auth.uid == resource.data.userId;
+    }
+
+    // Denegar acceso a cualquier otra colección por defecto
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

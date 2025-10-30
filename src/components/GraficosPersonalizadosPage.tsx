@@ -7,13 +7,25 @@ import { Plus, Trash2, Loader2, BookOpen, Info, TrendingUp, AlertCircle, Downloa
 import { GlosarioModal } from './GlosarioModal';
 import { AnalisisCorrelacion } from './AnalisisCorrelacion';
 import html2canvas from 'html2canvas';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveChart, getUserCharts, deleteChart, migrateLocalStorageCharts } from '@/lib/chartService';
+import type { SavedChart as FirestoreSavedChart } from '@/lib/chartService';
 
 const API_BASE_URL = `${import.meta.env.PUBLIC_API_BASE_URL}api/private`;
 
 // Colores para las líneas del gráfico
+// Diferentes tonos de verde para distinguir líneas de distintas estaciones
 const COLORS = [
-  "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
-  "#ec4899", "#06b6d4", "#84cc16", "#f97316", "#6366f1"
+  "#10b981", // emerald-500
+  "#059669", // emerald-600
+  "#047857", // emerald-700
+  "#065f46", // emerald-800
+  "#064e3b", // emerald-900
+  "#34d399", // emerald-400
+  "#6ee7b7", // emerald-300
+  "#14b8a6", // teal-500
+  "#0d9488", // teal-600
+  "#0f766e"  // teal-700
 ];
 
 interface LineConfig {
@@ -56,7 +68,27 @@ const DESCRIPCIONES_RAPIDAS: Record<string, string> = {
   "Percentil": "Valor estadístico que divide los datos en porcentajes."
 };
 
+// Tooltip personalizado que trunca valores a 1 decimal
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border border-gray-300 rounded-lg shadow-lg">
+        <p className="font-semibold text-gray-900 mb-2">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} className="text-sm" style={{ color: entry.color }}>
+            {entry.name}: <span className="font-bold">{(Math.trunc(entry.value * 10) / 10).toFixed(1)}</span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 export function GraficosPageContent() {
+  // Hook de autenticación
+  const { user } = useAuth();
+
   // Helper para cargar datos desde localStorage
   const getFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
     if (typeof window === 'undefined') return defaultValue;
@@ -136,9 +168,8 @@ export function GraficosPageContent() {
     fechaCreacion: string;
   }
 
-  const [savedCharts, setSavedCharts] = useState<SavedChart[]>(() =>
-    getFromLocalStorage('graficos_savedCharts', [])
-  );
+  const [savedCharts, setSavedCharts] = useState<SavedChart[]>([]);
+  const [loadingSavedCharts, setLoadingSavedCharts] = useState(false);
 
   // Estado para modal de guardar gráfico
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -158,6 +189,41 @@ export function GraficosPageContent() {
         setLoadingRegiones(false);
       });
   }, []);
+
+  // 🔥 Cargar gráficos guardados del usuario desde Firestore
+  useEffect(() => {
+    const loadUserCharts = async () => {
+      if (!user) return;
+
+      setLoadingSavedCharts(true);
+      try {
+        // Intentar migrar gráficos de localStorage si existen
+        const localCharts = localStorage.getItem('graficos_savedCharts');
+        if (localCharts) {
+          const shouldMigrate = confirm(
+            'Se encontraron gráficos guardados localmente. ¿Deseas migrarlos a la nube?'
+          );
+          if (shouldMigrate) {
+            await migrateLocalStorageCharts(user.uid);
+            alert('Gráficos migrados exitosamente a la nube');
+          } else {
+            localStorage.removeItem('graficos_savedCharts');
+          }
+        }
+
+        // Cargar gráficos del usuario desde Firestore
+        const charts = await getUserCharts(user.uid);
+        setSavedCharts(charts as SavedChart[]);
+      } catch (error) {
+        console.error('Error cargando gráficos:', error);
+        alert('Error al cargar los gráficos guardados');
+      } finally {
+        setLoadingSavedCharts(false);
+      }
+    };
+
+    loadUserCharts();
+  }, [user]);
 
   // 2️⃣ Cargar estaciones cuando se selecciona región
   useEffect(() => {
@@ -236,10 +302,11 @@ export function GraficosPageContent() {
     saveToLocalStorage('graficos_formData', formData);
   }, [formData]);
 
+  // 🔥 Los gráficos ya NO se guardan en localStorage, ahora se usan funciones de Firestore
   // Persist saved charts
-  useEffect(() => {
-    saveToLocalStorage('graficos_savedCharts', savedCharts);
-  }, [savedCharts]);
+  // useEffect(() => {
+  //   saveToLocalStorage('graficos_savedCharts', savedCharts);
+  // }, [savedCharts]);
 
   // Recargar datos de líneas guardadas al montar el componente
   useEffect(() => {
@@ -366,25 +433,44 @@ export function GraficosPageContent() {
   };
 
   // Función para confirmar el guardado con nombre
-  const confirmarGuardado = () => {
+  const confirmarGuardado = async () => {
     if (!chartName.trim()) {
       alert("Por favor ingresa un nombre para el gráfico");
       return;
     }
 
-    const newChart: SavedChart = {
-      id: `${Date.now()}-${Math.random()}`,
-      nombre: chartName,
-      lines: lines,
-      yearsFilter: yearsFilter,
-      temporalView: temporalView,
-      fechaCreacion: new Date().toISOString()
-    };
+    if (!user) {
+      alert("Debes iniciar sesión para guardar gráficos");
+      return;
+    }
 
-    setSavedCharts(prev => [...prev, newChart]);
-    setShowSaveModal(false);
-    setChartName('');
-    alert(`Gráfico "${chartName}" guardado exitosamente`);
+    try {
+      // Guardar en Firestore
+      const chartId = await saveChart(user.uid, {
+        nombre: chartName,
+        lines: lines,
+        yearsFilter: yearsFilter,
+        temporalView: temporalView
+      });
+
+      // Agregar al estado local con el ID de Firestore
+      const newChart: SavedChart = {
+        id: chartId,
+        nombre: chartName,
+        lines: lines,
+        yearsFilter: yearsFilter,
+        temporalView: temporalView,
+        fechaCreacion: new Date().toISOString()
+      };
+
+      setSavedCharts(prev => [...prev, newChart]);
+      setShowSaveModal(false);
+      setChartName('');
+      alert(`Gráfico "${chartName}" guardado exitosamente en la nube`);
+    } catch (error) {
+      console.error('Error al guardar gráfico:', error);
+      alert('Error al guardar el gráfico. Por favor, intenta de nuevo.');
+    }
   };
 
   // Función para cargar un gráfico guardado
@@ -401,9 +487,21 @@ export function GraficosPageContent() {
   };
 
   // Función para eliminar un gráfico guardado
-  const eliminarGraficoGuardado = (chartId: string) => {
-    if (confirm("¿Estás seguro de eliminar este gráfico guardado?")) {
+  const eliminarGraficoGuardado = async (chartId: string) => {
+    if (!confirm("¿Estás seguro de eliminar este gráfico guardado?")) {
+      return;
+    }
+
+    try {
+      // Eliminar de Firestore
+      await deleteChart(chartId);
+
+      // Actualizar estado local
       setSavedCharts(prev => prev.filter(chart => chart.id !== chartId));
+      alert('Gráfico eliminado exitosamente');
+    } catch (error) {
+      console.error('Error al eliminar gráfico:', error);
+      alert('Error al eliminar el gráfico. Por favor, intenta de nuevo.');
     }
   };
 
@@ -993,7 +1091,7 @@ export function GraficosPageContent() {
                       />
                       <YAxis tick={{ fontSize: 10 }} width={60} />
                       <Tooltip
-                        contentStyle={{ fontSize: 12 }}
+                        content={<CustomTooltip />}
                         wrapperStyle={{ zIndex: 1000 }}
                       />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -1021,7 +1119,16 @@ export function GraficosPageContent() {
         </div>
         ) : (
           <div className="space-y-6">
-            {savedCharts.length === 0 ? (
+            {loadingSavedCharts ? (
+              <Card>
+                <CardContent className="py-16">
+                  <div className="text-center text-gray-500">
+                    <Loader2 className="w-16 h-16 mx-auto mb-4 animate-spin text-emerald-600" />
+                    <p className="text-lg font-medium mb-2">Cargando gráficos guardados...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : savedCharts.length === 0 ? (
               <Card>
                 <CardContent className="py-16">
                   <div className="text-center text-gray-500">

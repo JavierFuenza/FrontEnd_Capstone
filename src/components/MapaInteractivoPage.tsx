@@ -204,7 +204,6 @@ export function MapaInteractivoPage() {
             const data = await response.json();
             const available: MetricType[] = data.metricas_disponibles || [];
 
-            console.log(`[MapaInteractivoPage] Métricas disponibles para ${estacion.nombre}:`, available);
             setAvailableMetrics(available);
 
             // Si la métrica seleccionada no está disponible, cambiar a la primera disponible

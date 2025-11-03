@@ -247,13 +247,13 @@ export function GraficosPageContent() {
 
   // 3️⃣ Cargar métricas cuando se selecciona estación
   useEffect(() => {
-    if (!formData.estacion || !formData.estacionId) {
+    if (!formData.estacion) {
       setMetricas([]);
       return;
     }
 
     setLoadingMetricas(true);
-    fetch(`${API_BASE_URL}/estaciones/metricas?estacion_id=${formData.estacionId}`)
+    fetch(`${API_BASE_URL}/estaciones/metricas?nombre=${encodeURIComponent(formData.estacion)}`)
       .then(res => res.json())
       .then(data => {
         setMetricas(data.metricas_disponibles || []);
@@ -263,17 +263,17 @@ export function GraficosPageContent() {
         console.error("Error cargando métricas:", err);
         setLoadingMetricas(false);
       });
-  }, [formData.estacion, formData.estacionId]);
+  }, [formData.estacion]);
 
   // 4️⃣ Cargar submmétricas cuando se selecciona métrica
   useEffect(() => {
-    if (!formData.metrica || !formData.estacionId) {
+    if (!formData.metrica || !formData.estacion) {
       setSubmetricas([]);
       return;
     }
 
     setLoadingSubmetricas(true);
-    fetch(`${API_BASE_URL}/estaciones/submetricas?metrica=${encodeURIComponent(formData.metrica)}&estacion_id=${formData.estacionId}`)
+    fetch(`${API_BASE_URL}/estaciones/submetricas?metrica=${encodeURIComponent(formData.metrica)}&nombre=${encodeURIComponent(formData.estacion)}`)
       .then(res => res.json())
       .then(data => {
         setSubmetricas(data.submetricas_disponibles || []);
@@ -283,7 +283,7 @@ export function GraficosPageContent() {
         console.error("Error cargando submmétricas:", err);
         setLoadingSubmetricas(false);
       });
-  }, [formData.metrica, formData.estacionId]);
+  }, [formData.metrica, formData.estacion]);
 
   // Persistir estado en localStorage
   useEffect(() => {
@@ -352,7 +352,7 @@ export function GraficosPageContent() {
 
   // Función para agregar una nueva línea al gráfico
   const agregarLinea = async () => {
-    if (!formData.region || !formData.estacion || !formData.metrica || !formData.submetrica || !formData.estacionId) {
+    if (!formData.region || !formData.estacion || !formData.metrica || !formData.submetrica) {
       alert("Por favor completa todos los campos");
       return;
     }
@@ -381,7 +381,7 @@ export function GraficosPageContent() {
     // Cargar datos
     try {
       const response = await fetch(
-        `${API_BASE_URL}/estaciones/datos-submetrica?submetrica=${encodeURIComponent(formData.submetrica)}&estacion_id=${formData.estacionId}`
+        `${API_BASE_URL}/estaciones/datos-submetrica?submetrica=${encodeURIComponent(formData.submetrica)}&nombre=${encodeURIComponent(formData.estacion)}`
       );
 
       if (!response.ok) {

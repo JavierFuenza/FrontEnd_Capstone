@@ -19,7 +19,7 @@ interface Estacion {
     created_at: string;
 }
 
-type MetricType = 'temperatura' | 'mp25' | 'mp10' | 'o3' | 'so2' | 'no2' | 'co' | 'otros';
+type MetricType = 'temperatura' | 'mp25' | 'mp10' | 'o3' | 'so2' | 'no2' | 'co' | 'humedad_radiacion_uv';
 
 interface MetricData {
     temperatura?: any[];
@@ -29,7 +29,7 @@ interface MetricData {
     so2?: any;
     no2?: any;
     co?: any;
-    otros?: any;
+    humedad_radiacion_uv?: any;
 }
 
 export function MapaInteractivoPage() {
@@ -188,35 +188,32 @@ export function MapaInteractivoPage() {
         }
     }, [estaciones]);
 
-    // Función para determinar métricas disponibles
+    // Función para determinar métricas disponibles usando el endpoint /tabs
     const checkAvailableMetrics = async (estacion: Estacion) => {
-        const metricsToCheck: MetricType[] = ['temperatura', 'mp25', 'mp10', 'o3', 'so2', 'no2', 'co', 'otros'];
-        const available: MetricType[] = [];
+        try {
+            const response = await fetch(
+                `${import.meta.env.PUBLIC_API_BASE_URL}api/private/metricas/tabs/${estacion.nombre}`
+            );
 
-        for (const metric of metricsToCheck) {
-            try {
-                const response = await fetch(
-                    `${import.meta.env.PUBLIC_API_BASE_URL}api/private/metricas/${metric}/${estacion.nombre}`
-                );
-                if (response.ok) {
-                    const data = await response.json();
-
-                    // Verificar si tiene datos según el tipo de métrica
-                    if (metric === 'temperatura' && Array.isArray(data) && data.length > 0) {
-                        available.push(metric);
-                    } else if (data.tiene_datos) {
-                        available.push(metric);
-                    }
-                }
-            } catch (err) {
-                console.error(`Error checking ${metric}:`, err);
+            if (!response.ok) {
+                console.error('Error fetching available metrics:', response.statusText);
+                setAvailableMetrics([]);
+                return;
             }
-        }
 
-        setAvailableMetrics(available);
-        // Si la métrica seleccionada no está disponible, cambiar a la primera disponible
-        if (available.length > 0 && !available.includes(selectedMetric)) {
-            setSelectedMetric(available[0]);
+            const data = await response.json();
+            const available: MetricType[] = data.metricas_disponibles || [];
+
+            console.log(`[MapaInteractivoPage] Métricas disponibles para ${estacion.nombre}:`, available);
+            setAvailableMetrics(available);
+
+            // Si la métrica seleccionada no está disponible, cambiar a la primera disponible
+            if (available.length > 0 && !available.includes(selectedMetric)) {
+                setSelectedMetric(available[0]);
+            }
+        } catch (err) {
+            console.error('Error checking available metrics:', err);
+            setAvailableMetrics([]);
         }
     };
 
@@ -274,7 +271,7 @@ export function MapaInteractivoPage() {
         so2: 'SO₂',
         no2: 'NO₂',
         co: 'CO',
-        otros: 'Otros'
+        humedad_radiacion_uv: 'Humedad Radiación y UV'
     };
 
     // Función auxiliar para filtrar datos vacíos (remover registros sin valores válidos)
@@ -1138,8 +1135,8 @@ export function MapaInteractivoPage() {
             return <div className="space-y-4">{charts}</div>;
         }
 
-        // Otros (Humedad, Radiación UV, Olas de Calor)
-        if (selectedMetric === 'otros') {
+        // Humedad, Radiación UV y Olas de Calor
+        if (selectedMetric === 'humedad_radiacion_uv') {
             const { humedad_radiacion_uv = [], olas_de_calor = [], tiene_datos } = currentData;
 
             if (!tiene_datos) {

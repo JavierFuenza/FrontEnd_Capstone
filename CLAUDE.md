@@ -88,9 +88,45 @@ Configurado en:
 - `client:visible` - Hidrata cuando el componente es visible (ScrollToTopButton)
 - Sin directiva - Solo renderiza en el servidor (Footer)
 
+### AI Explanation Feature
+
+**Ubicación**: `src/components/AIExplainButton.tsx` y `src/lib/aiExplanationService.ts`
+
+El proyecto incluye una función de explicación con IA para gráficos:
+
+1. **AIExplainButton Component**: Botón reutilizable con popover que solicita explicaciones de gráficos a través de un webhook n8n
+2. **Service Layer**: `aiExplanationService` maneja la comunicación con el webhook
+3. **Integración**: Presente en `GraficosPersonalizadosPage` y `RecursosHidricosPage`
+
+**Configuración requerida**:
+- Variable de entorno: `PUBLIC_N8N_WEBHOOK_URL` (ver `.env.example`)
+- El webhook debe aceptar: `{ chartConfig, dataPoints, userContext }`
+- El webhook debe retornar: `{ explanation, insights?, recommendations? }`
+
+**Uso del componente**:
+```tsx
+<AIExplainButton
+  chartData={datosGrafico}
+  chartConfig={{
+    nombre: "Nombre del gráfico",
+    lines: [...],
+    temporalView: "mensual",
+    yearsFilter: 1
+  }}
+  userContext={{
+    userId: user?.uid,
+    chartType: "line"
+  }}
+  position="top-right"
+/>
+```
+
+**Componentes UI utilizados**: Radix UI Popover (`@radix-ui/react-popover`)
+
 ### Consideraciones Especiales
 
 1. **Leaflet**: Requiere chequeo `typeof window === 'undefined'` para SSR
 2. **Iconos de Leaflet**: Se configuran manualmente con `L.icon()` y `L.Marker.prototype.options.icon`
 3. **Conflictos Git**: El README.md tiene conflictos de merge sin resolver entre documentación de proyecto y template de Astro
 4. **shadcn/ui**: Usa `cn()` utility de `src/lib/utils.ts` para merge de clases Tailwind
+5. **AI Explanation**: Requiere configuración del webhook n8n en variables de entorno para funcionar

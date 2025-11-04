@@ -1,7 +1,7 @@
 // src/components/NavBar.tsx
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button"; // <-- Importa el componente Button
-import { MapPin, BarChart3, Code, DollarSign, Leaf, Menu, X, User, LogOut } from "lucide-react";
+import { MapPin, BarChart3, Code, DollarSign, Leaf, Menu, X, User, LogOut, Droplets } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function NavBar() {
@@ -66,6 +66,13 @@ export function NavBar() {
           >
             <BarChart3 className="w-4 h-4" />
             <span>Gráficos</span>
+          </a>
+          <a
+            href="/recursos-hidricos"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+          >
+            <Droplets className="w-4 h-4" />
+            <span>Recursos Hídricos</span>
           </a>
           <a
             href="/api-docs"
@@ -162,6 +169,14 @@ export function NavBar() {
             >
               <BarChart3 className="w-4 h-4" />
               <span>Gráficos Personalizados</span>
+            </a>
+            <a
+              href="/recursos-hidricos"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+            >
+              <Droplets className="w-4 h-4" />
+              <span>Recursos Hídricos</span>
             </a>
             <a
               href="/api-docs"

@@ -1,7 +1,7 @@
 // src/components/HomePageContent.tsx
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MapPin, BarChart3, ChevronLeft, ChevronRight, AlertTriangle, Lightbulb, Users } from "lucide-react";
+import { MapPin, BarChart3, ChevronLeft, ChevronRight, AlertTriangle, Lightbulb, Users, Droplets } from "lucide-react";
 import { PricingCard } from "./PricingCard";
 
 type Plan = {
@@ -189,7 +189,7 @@ export function HomePageContent() {
       </div>
 
       {/* Feature Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12 md:mb-16 lg:mb-20">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-12 md:mb-16 lg:mb-20">
         <a href="/mapa-interactivo">
           <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-b-4 border-b-emerald-500">
             <CardHeader>
@@ -216,6 +216,21 @@ export function HomePageContent() {
               </div>
               <CardDescription className="text-base">
                 Herramientas avanzadas de análisis para investigadores.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </a>
+        <a href="/recursos-hidricos">
+          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-b-4 border-b-emerald-500">
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                  <Droplets className="w-6 h-6 text-emerald-600" />
+                </div>
+                <CardTitle className="text-xl">Recursos Hídricos</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Gestiona estaciones de monitoreo hidrológico y acuático.
               </CardDescription>
             </CardHeader>
           </Card>

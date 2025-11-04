@@ -1,0 +1,9 @@
+---
+import MapLayout from '../layouts/MapLayout.astro';
+import { RecursosHidricosPage } from '../components/RecursosHidricosPage.tsx';
+---
+<MapLayout title="Recursos Hídricos">
+  <main class="relative w-full h-screen overflow-hidden">
+    <RecursosHidricosPage client:only="react" />
+  </main>
+</MapLayout>

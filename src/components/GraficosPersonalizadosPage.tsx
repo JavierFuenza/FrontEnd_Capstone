@@ -1073,7 +1073,7 @@ export function GraficosPageContent() {
                     <p className="text-xs md:text-sm mt-2 text-center">Selecciona Región → Estación → Métrica → Submétrica</p>
                   </div>
                 ) : (
-                  <>
+                  <div className="h-full w-full">
                     {/* AI Explain Button */}
                     <AIExplainButton
                       chartData={datosGrafico}
@@ -1132,7 +1132,7 @@ export function GraficosPageContent() {
                       ))}
                     </LineChart>
                     </ResponsiveContainer>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>

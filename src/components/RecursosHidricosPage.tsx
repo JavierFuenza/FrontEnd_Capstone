@@ -267,7 +267,7 @@ export function RecursosHidricosPage() {
       <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
         {/* Top Bar */}
         <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
                 {selectedEntityType
@@ -289,6 +289,25 @@ export function RecursosHidricosPage() {
                 Actualizar
               </Button>
             </div>
+          </div>
+          {/* Search bar in main content */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Buscar estaciones por nombre..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-10"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -380,7 +399,7 @@ export function RecursosHidricosPage() {
             className="fixed inset-0 bg-black bg-opacity-30 z-40 pt-[60px]"
             onClick={() => setSelectedEntity(null)}
           />
-          <div className="fixed right-0 top-[60px] h-[calc(100vh-60px)] w-96 bg-white shadow-2xl z-50 overflow-y-auto">
+          <div className="fixed right-0 top-[60px] h-[calc(100vh-60px)] w-[480px] bg-white shadow-2xl z-50 overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
               <h3 className="text-lg font-bold text-gray-900">Detalles</h3>
               <button
@@ -436,42 +455,144 @@ export function RecursosHidricosPage() {
                           {entityData.length} registro(s) encontrado(s)
                         </p>
                       </div>
-                      <ResponsiveContainer width="100%" height={200}>
-                        <AreaChart data={entityData.slice(0, 50)}>
-                          <defs>
-                            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                          <XAxis
-                            dataKey="mes"
-                            tick={{ fontSize: 10 }}
-                            stroke="#6b7280"
-                          />
-                          <YAxis
-                            tick={{ fontSize: 10 }}
-                            stroke="#6b7280"
-                          />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '6px',
-                              fontSize: '12px'
-                            }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="value"
-                            stroke="#10b981"
-                            strokeWidth={2}
-                            fillOpacity={1}
-                            fill="url(#colorValue)"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
+                      {(() => {
+                        // Detectar el campo de tiempo (anio, mes o dia)
+                        const timeField = entityData[0]?.anio !== undefined
+                          ? 'anio'
+                          : entityData[0]?.mes !== undefined
+                          ? 'mes'
+                          : 'dia';
+
+                        // Verificar si hay parámetros (para metales disueltos/sedimentos)
+                        const hasParameters = entityData[0]?.parametros_poal !== undefined;
+
+                        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+                        if (hasParameters) {
+                          // Agrupar datos por parámetro
+                          const parameterGroups = entityData.reduce((acc, item) => {
+                            const param = item.parametros_poal;
+                            if (!acc[param]) {
+                              acc[param] = [];
+                            }
+                            acc[param].push(item);
+                            return acc;
+                          }, {} as Record<string, typeof entityData>);
+
+                          return (
+                            <div className="space-y-4">
+                              {Object.entries(parameterGroups).map(([paramName, paramData], index) => (
+                                <div key={paramName} className="bg-gray-50 rounded-lg p-3">
+                                  <h6 className="text-xs font-semibold text-gray-700 mb-2">
+                                    {paramName}
+                                  </h6>
+                                  <ResponsiveContainer width="100%" height={180}>
+                                    <AreaChart data={paramData}>
+                                      <defs>
+                                        <linearGradient id={`gradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                                          <stop offset="5%" stopColor={colors[index % colors.length]} stopOpacity={0.3}/>
+                                          <stop offset="95%" stopColor={colors[index % colors.length]} stopOpacity={0}/>
+                                        </linearGradient>
+                                      </defs>
+                                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                      <XAxis
+                                        dataKey={timeField}
+                                        tick={{ fontSize: 7 }}
+                                        stroke="#6b7280"
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={50}
+                                      />
+                                      <YAxis
+                                        tick={{ fontSize: 9 }}
+                                        stroke="#6b7280"
+                                        width={45}
+                                      />
+                                      <Tooltip
+                                        contentStyle={{
+                                          backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                                          border: '1px solid #d1d5db',
+                                          borderRadius: '6px',
+                                          fontSize: '11px',
+                                          padding: '6px 8px'
+                                        }}
+                                      />
+                                      <Area
+                                        type="monotone"
+                                        dataKey="value"
+                                        stroke={colors[index % colors.length]}
+                                        strokeWidth={2}
+                                        fillOpacity={1}
+                                        fill={`url(#gradient-${index})`}
+                                        dot={{ r: 2, fill: colors[index % colors.length] }}
+                                      />
+                                    </AreaChart>
+                                  </ResponsiveContainer>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        } else {
+                          // Obtener todos los campos numéricos (excluyendo estacion y tiempo)
+                          const numericFields = Object.keys(entityData[0] || {}).filter(
+                            key => !['estacion', 'estaciones_poal', timeField].includes(key) && typeof entityData[0][key] === 'number'
+                          );
+
+                          return (
+                            <div className="space-y-4">
+                              {numericFields.map((field, index) => (
+                                <div key={field} className="bg-gray-50 rounded-lg p-3">
+                                  <h6 className="text-xs font-semibold text-gray-700 mb-2 uppercase">
+                                    {field.replace(/_/g, ' ')}
+                                  </h6>
+                                  <ResponsiveContainer width="100%" height={180}>
+                                    <AreaChart data={entityData}>
+                                      <defs>
+                                        <linearGradient id={`gradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                                          <stop offset="5%" stopColor={colors[index % colors.length]} stopOpacity={0.3}/>
+                                          <stop offset="95%" stopColor={colors[index % colors.length]} stopOpacity={0}/>
+                                        </linearGradient>
+                                      </defs>
+                                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                      <XAxis
+                                        dataKey={timeField}
+                                        tick={{ fontSize: 7 }}
+                                        stroke="#6b7280"
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={50}
+                                      />
+                                      <YAxis
+                                        tick={{ fontSize: 9 }}
+                                        stroke="#6b7280"
+                                        width={45}
+                                      />
+                                      <Tooltip
+                                        contentStyle={{
+                                          backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                                          border: '1px solid #d1d5db',
+                                          borderRadius: '6px',
+                                          fontSize: '11px',
+                                          padding: '6px 8px'
+                                        }}
+                                      />
+                                      <Area
+                                        type="monotone"
+                                        dataKey={field}
+                                        stroke={colors[index % colors.length]}
+                                        strokeWidth={2}
+                                        fillOpacity={1}
+                                        fill={`url(#gradient-${index})`}
+                                        dot={{ r: 2, fill: colors[index % colors.length] }}
+                                      />
+                                    </AreaChart>
+                                  </ResponsiveContainer>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+                      })()}
                     </>
                   )}
                 </div>

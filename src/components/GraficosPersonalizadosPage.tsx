@@ -1062,7 +1062,7 @@ export function GraficosPageContent() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="h-[400px] md:h-[500px] lg:h-[600px] pt-4 relative" ref={chartRef}>
+              <CardContent className="h-[400px] md:h-[500px] lg:h-[600px] p-0 relative" ref={chartRef}>
                 {lines.length === 0 ? (
                   // Skeleton del gráfico vacío
                   <div className="h-full flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 rounded-lg px-4">
@@ -1072,8 +1072,14 @@ export function GraficosPageContent() {
                     <p className="text-base md:text-lg font-medium text-center">Agrega datos para ver el gráfico</p>
                     <p className="text-xs md:text-sm mt-2 text-center">Selecciona Región → Estación → Métrica → Submétrica</p>
                   </div>
+                ) : datosGrafico.length === 0 && lines.some(l => l.loading) ? (
+                  // Loading state while data is being fetched
+                  <div className="h-full flex flex-col items-center justify-center">
+                    <Loader2 className="w-12 h-12 md:w-16 md:h-16 mb-3 md:mb-4 animate-spin text-emerald-600" />
+                    <p className="text-base md:text-lg font-medium text-gray-700">Cargando datos...</p>
+                  </div>
                 ) : (
-                  <div className="h-full w-full">
+                  <div className="h-full w-full" style={{ minHeight: '100%' }}>
                     {/* AI Explain Button */}
                     <AIExplainButton
                       chartData={datosGrafico}
@@ -1086,7 +1092,7 @@ export function GraficosPageContent() {
                           color: l.color
                         })),
                         temporalView: temporalView,
-                        yearsFilter: selectedYear
+                        yearsFilter: yearsFilter
                       }}
                       userContext={{
                         userId: user?.uid,

@@ -237,19 +237,19 @@ export function HomePageContent() {
         </a>
       </div>
 
-      <div id="precios-section" className="text-center mb-8 md:mb-12 px-4">
+      {/* <div id="precios-section" className="text-center mb-8 md:mb-12 px-4">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 md:mb-4">Planes y Precios</h2>
         <p className="text-base md:text-lg text-gray-600">
           Elige el plan que mejor se adapte a tus necesidades.
         </p>
-      </div>
+      </div> */}
 
       {/* Pricing Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10 md:mb-12">
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10 md:mb-12">
         {pricingPlans.map(plan => (
           <PricingCard key={plan.title} {...plan} />
         ))}
-      </div>
+      </div> */}
 
       {/* Footer CTA */}
       <div className="text-center">

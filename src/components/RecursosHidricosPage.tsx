@@ -15,7 +15,8 @@ import {
   MapPin,
   Calendar,
   Tag,
-  TrendingUp
+  TrendingUp,
+  Maximize2
 } from 'lucide-react';
 import {
   LineChart,
@@ -42,6 +43,91 @@ interface EntidadAgua {
   [key: string]: any;
 }
 
+// Mapeo de nombres técnicos a nombres descriptivos
+const fieldNameMapping: Record<string, string> = {
+  // Cuencas
+  'num_glaciares_por_cuenca': 'Número de glaciares',
+  'area_cuenca_km2': 'Área de la cuenca (km²)',
+  'area_glaciares_km2': 'Área de glaciares (km²)',
+  'superficie_cuenca': 'Superficie (km²)',
+  'longitud_cauce_principal': 'Longitud del cauce principal (km)',
+  'superficie_de_glaciares_por_cuenca': 'Superficie de glaciares (km²)',
+  'volumen_de_hielo_glaciar_estimado_por_cuenca': 'Volumen de hielo glaciar estimado (km³)',
+  'volumen_de_agua_de_glaciares_estimada_por_cuenca': 'Volumen de agua de glaciares estimada (km³)',
+
+  // Embalses
+  'capacidad_embalse_m3': 'Capacidad del embalse (m³)',
+  'volumen_util': 'Volumen útil (m³)',
+  'cota_maxima': 'Cota máxima (m)',
+  'cota_minima': 'Cota mínima (m)',
+  'nivel_actual': 'Nivel actual (m)',
+  'cota_coronamiento': 'Cota coronamiento (m)',
+  'superficie_inundada': 'Superficie inundada (ha)',
+
+  // Estaciones Meteorológicas
+  'temperatura_promedio': 'Temperatura promedio (°C)',
+  'temperatura_max': 'Temperatura máxima (°C)',
+  'temperatura_min': 'Temperatura mínima (°C)',
+  'precipitacion': 'Precipitación (mm)',
+  'humedad_relativa': 'Humedad relativa (%)',
+  'velocidad_viento': 'Velocidad del viento (km/h)',
+  'direccion_viento': 'Dirección del viento',
+  'presion_atmosferica': 'Presión atmosférica (hPa)',
+  'radiacion_solar': 'Radiación solar (W/m²)',
+
+  // Estaciones Fluviométricas
+  'caudal': 'Caudal (m³/s)',
+  'caudal_promedio': 'Caudal promedio (m³/s)',
+  'caudal_max': 'Caudal máximo (m³/s)',
+  'caudal_min': 'Caudal mínimo (m³/s)',
+  'nivel_agua': 'Nivel del agua (m)',
+  'altura_rio': 'Altura del río (m)',
+
+  // Estaciones Nivométricas
+  'altura_nieve': 'Altura de la nieve (cm)',
+  'equivalente_agua_nieve': 'Equivalente de agua en nieve (mm)',
+  'densidad_nieve': 'Densidad de la nieve (g/cm³)',
+  'temperatura_nieve': 'Temperatura de la nieve (°C)',
+
+  // Estaciones de Evaporación
+  'evaporacion': 'Evaporación (mm)',
+  'evaporacion_diaria': 'Evaporación diaria (mm)',
+  'evaporacion_mensual': 'Evaporación mensual (mm)',
+  'evaporacion_acumulada': 'Evaporación acumulada (mm)',
+
+  // Metales y Coliformes
+  'concentracion': 'Concentración (μg/L)',
+  'valor_medido': 'Concentración medida',
+  'unidad_medida': 'Unidad de medida',
+  'limite_permitido': 'Límite permitido',
+  'cumple_norma': 'Cumple norma',
+
+  // Pozos de Monitoreo
+  'profundidad_pozo': 'Profundidad del pozo (m)',
+  'nivel_freatico': 'Nivel freático (m)',
+  'calidad_agua': 'Calidad del agua',
+  'ph': 'pH',
+  'conductividad': 'Conductividad (μS/cm)',
+  'temperatura_agua': 'Temperatura del agua (°C)',
+
+  // Campos temporales
+  'anio': 'Año',
+  'mes': 'Mes',
+  'dia': 'Día',
+  'fecha': 'Fecha',
+
+  // Otros campos comunes
+  'value': 'Concentración',
+  'parametros_poal': 'Parámetro',
+  'estacion': 'Estación',
+  'estaciones_poal': 'Estación'
+};
+
+// Función para obtener el nombre descriptivo de un campo
+const getFieldLabel = (fieldName: string): string => {
+  return fieldNameMapping[fieldName] || fieldName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
 export function RecursosHidricosPage() {
   const [loading, setLoading] = useState(true);
   const [entities, setEntities] = useState<EntidadAgua[]>([]);
@@ -52,23 +138,79 @@ export function RecursosHidricosPage() {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [entityData, setEntityData] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('recursos_hidricos_expanded_groups');
+    return saved ? JSON.parse(saved) : {
+      'monitoreo-costero': true,
+      'clima-hidrologia': true,
+      'recursos-hidricos': true,
+      'monitoreo-subterraneo': true
+    };
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 100;
+  const [expandedChart, setExpandedChart] = useState<{
+    title: string;
+    data: any[];
+    field: string;
+    timeField: string;
+    color: string;
+    entityName: string;
+  } | null>(null);
 
-  const entityTypes = [
-    { value: 'Cuenca Hidrográfica', label: 'Cuenca Hidrográfica', icon: '🏞️' },
-    { value: 'Embalse', label: 'Embalse', icon: '🏗️' },
-    { value: 'Estación Costera - Coliformes Acuosos', label: 'Estación Costera - Coliformes Acuosos', icon: '🌊' },
-    { value: 'Estación Costera - Coliformes Biológicos', label: 'Estación Costera - Coliformes Biológicos', icon: '🦠' },
-    { value: 'Estación Costera - Metales Disueltos', label: 'Estación Costera - Metales Disueltos', icon: '⚗️' },
-    { value: 'Estación Costera - Metales Sedimentos', label: 'Estación Costera - Metales Sedimentos', icon: '🧪' },
-    { value: 'Estación Fluviométrica', label: 'Estación Fluviométrica', icon: '🌊' },
-    { value: 'Estación Meteorológica', label: 'Estación Meteorológica', icon: '🌤️' },
-    { value: 'Estación Nivométrica', label: 'Estación Nivométrica', icon: '❄️' },
-    { value: 'Estación Oceanográfica', label: 'Estación Oceanográfica', icon: '🌊' },
-    { value: 'Estación de Evaporación', label: 'Estación de Evaporación', icon: '☀️' },
-    { value: 'Pozo de Monitoreo', label: 'Pozo de Monitoreo', icon: '🕳️' }
+  // Estructura agrupada de tipos de entidades
+  const entityGroups = [
+    {
+      id: 'monitoreo-costero',
+      name: 'Monitoreo Costero',
+      icon: '🌊',
+      color: 'from-blue-500 to-cyan-500',
+      types: [
+        { value: 'Estación Costera - Coliformes Acuosos', label: 'Coliformes Acuosos', icon: '🌊' },
+        { value: 'Estación Costera - Coliformes Biológicos', label: 'Coliformes Biológicos', icon: '🦠' },
+        { value: 'Estación Costera - Metales Disueltos', label: 'Metales Disueltos', icon: '⚗️' },
+        { value: 'Estación Costera - Metales Sedimentos', label: 'Metales Sedimentos', icon: '🧪' },
+        { value: 'Estación Oceanográfica', label: 'Estación Oceanográfica', icon: '🌊' }
+      ]
+    },
+    {
+      id: 'clima-hidrologia',
+      name: 'Clima e Hidrología',
+      icon: '🌤️',
+      color: 'from-amber-500 to-orange-500',
+      types: [
+        { value: 'Estación Meteorológica', label: 'Estación Meteorológica', icon: '🌤️' },
+        { value: 'Estación Nivométrica', label: 'Estación Nivométrica', icon: '❄️' },
+        { value: 'Estación Fluviométrica', label: 'Estación Fluviométrica', icon: '🌊' },
+        { value: 'Estación de Evaporación', label: 'Estación de Evaporación', icon: '☀️' }
+      ]
+    },
+    {
+      id: 'recursos-hidricos',
+      name: 'Recursos Hídricos',
+      icon: '🏞️',
+      color: 'from-emerald-500 to-green-500',
+      types: [
+        { value: 'Cuenca Hidrográfica', label: 'Cuenca Hidrográfica', icon: '🏞️' },
+        { value: 'Embalse', label: 'Embalse', icon: '🏗️' }
+      ]
+    },
+    {
+      id: 'monitoreo-subterraneo',
+      name: 'Monitoreo Subterráneo',
+      icon: '🕳️',
+      color: 'from-gray-500 to-slate-500',
+      types: [
+        { value: 'Pozo de Monitoreo', label: 'Pozo de Monitoreo', icon: '🕳️' }
+      ]
+    }
   ];
 
+  // Crear lista plana de tipos para compatibilidad
+  const entityTypes = entityGroups.flatMap(group => group.types);
+
   useEffect(() => {
+    // Siempre cargar entidades al montar el componente
     fetchEntities();
   }, []);
 
@@ -83,6 +225,33 @@ export function RecursosHidricosPage() {
       setEntityData([]);
     }
   }, [selectedEntity]);
+
+  useEffect(() => {
+    // Guardar estado de grupos expandidos en localStorage
+    localStorage.setItem('recursos_hidricos_expanded_groups', JSON.stringify(expandedGroups));
+  }, [expandedGroups]);
+
+  useEffect(() => {
+    // Resetear a la primera página cuando cambien los filtros
+    setCurrentPage(1);
+  }, [selectedEntityType, searchQuery]);
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
+  };
+
+  // Calcular entidades paginadas
+  const totalPages = Math.ceil(filteredEntities.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedEntities = filteredEntities.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
 
   const fetchEntities = async () => {
     try {
@@ -213,34 +382,71 @@ export function RecursosHidricosPage() {
           )}
         </div>
 
-        {/* Entity Types List */}
+        {/* Entity Types List - Grouped */}
         <div className="flex-1 overflow-y-auto p-3">
           <h3 className="text-xs font-semibold text-gray-700 mb-2">Tipos de Entidad</h3>
-          <div className="space-y-0.5">
-            {entityTypes.map((type) => {
-              const count = entities.filter(e => e.tipo === type.value).length;
-              const isSelected = selectedEntityType === type.value;
+          <div className="space-y-2">
+            {entityGroups.map((group) => {
+              const isExpanded = expandedGroups[group.id];
+              const groupTotal = group.types.reduce((sum, type) =>
+                sum + entities.filter(e => e.tipo === type.value).length, 0
+              );
 
               return (
-                <button
-                  key={type.value}
-                  onClick={() => setSelectedEntityType(isSelected ? null : type.value)}
-                  className={`w-full text-left px-2.5 py-2 rounded-lg transition-all flex items-center justify-between group ${
-                    isSelected
-                      ? 'bg-emerald-100 text-emerald-900 font-semibold border-2 border-emerald-500'
-                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-2 border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                    <span className="text-base">{type.icon}</span>
-                    <span className="text-xs truncate">{type.label}</span>
-                  </div>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                    isSelected ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-600 group-hover:bg-gray-300'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
+                <div key={group.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Group Header */}
+                  <button
+                    onClick={() => toggleGroup(group.id)}
+                    className={`w-full px-2.5 py-2 bg-gradient-to-r ${group.color} bg-opacity-10 hover:bg-opacity-20 transition-all flex items-center justify-between`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{group.icon}</span>
+                      <span className="text-xs font-bold text-gray-800">{group.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white shadow-sm text-gray-700">
+                        {groupTotal}
+                      </span>
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-gray-600" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-gray-600" />
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Group Types */}
+                  {isExpanded && (
+                    <div className="p-2 space-y-0.5 bg-white">
+                      {group.types.map((type) => {
+                        const count = entities.filter(e => e.tipo === type.value).length;
+                        const isSelected = selectedEntityType === type.value;
+
+                        return (
+                          <button
+                            key={type.value}
+                            onClick={() => setSelectedEntityType(isSelected ? null : type.value)}
+                            className={`w-full text-left px-2.5 py-1.5 rounded-lg transition-all flex items-center justify-between group ${
+                              isSelected
+                                ? 'bg-emerald-100 text-emerald-900 font-semibold border-2 border-emerald-500'
+                                : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-2 border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                              <span className="text-sm">{type.icon}</span>
+                              <span className="text-xs truncate">{type.label}</span>
+                            </div>
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                              isSelected ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-600 group-hover:bg-gray-300'
+                            }`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -342,8 +548,9 @@ export function RecursosHidricosPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {filteredEntities.map((entity) => {
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {paginatedEntities.map((entity) => {
                 const typeInfo = entityTypes.find(t => t.value === entity.tipo);
                 return (
                   <Card
@@ -391,6 +598,69 @@ export function RecursosHidricosPage() {
                 );
               })}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-center gap-2 pb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="h-8 px-3 text-xs"
+                >
+                  <ChevronDown className="w-4 h-4 rotate-90" />
+                  Anterior
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToPage(pageNum)}
+                        className={`h-8 w-8 p-0 text-xs ${
+                          currentPage === pageNum
+                            ? 'bg-emerald-600 hover:bg-emerald-700'
+                            : ''
+                        }`}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="h-8 px-3 text-xs"
+                >
+                  Siguiente
+                  <ChevronDown className="w-4 h-4 -rotate-90" />
+                </Button>
+
+                <div className="ml-4 text-xs text-gray-600">
+                  Mostrando {startIndex + 1}-{Math.min(endIndex, filteredEntities.length)} de {filteredEntities.length}
+                </div>
+              </div>
+            )}
+          </>
           )}
         </div>
       </div>
@@ -491,6 +761,21 @@ export function RecursosHidricosPage() {
                                   <h6 className="text-[10px] font-semibold text-gray-700 mb-1.5">
                                     {paramName}
                                   </h6>
+                                  <button
+                                    onClick={() => setExpandedChart({
+                                      title: paramName,
+                                      data: chartData,
+                                      field: 'value',
+                                      timeField: timeField,
+                                      color: colors[index % colors.length],
+                                      entityName: selectedEntity?.nombre || ''
+                                    })}
+                                    className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors shadow-sm z-10"
+                                    title="Expandir gráfico"
+                                  >
+                                    <Maximize2 className="w-3 h-3" />
+                                    <span className="text-[9px] font-semibold">Expandir</span>
+                                  </button>
                                   <AIExplainButton
                                     chartData={chartData}
                                     chartConfig={{
@@ -561,13 +846,28 @@ export function RecursosHidricosPage() {
                             <div className="space-y-3">
                               {numericFields.map((field, index) => (
                                 <div key={field} className="bg-gray-50 rounded-lg p-2 relative">
-                                  <h6 className="text-[10px] font-semibold text-gray-700 mb-1.5 uppercase">
-                                    {field.replace(/_/g, ' ')}
+                                  <h6 className="text-[10px] font-semibold text-gray-700 mb-1.5">
+                                    {getFieldLabel(field)}
                                   </h6>
+                                  <button
+                                    onClick={() => setExpandedChart({
+                                      title: getFieldLabel(field),
+                                      data: entityData,
+                                      field: field,
+                                      timeField: timeField,
+                                      color: colors[index % colors.length],
+                                      entityName: selectedEntity?.nombre || ''
+                                    })}
+                                    className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors shadow-sm z-10"
+                                    title="Expandir gráfico"
+                                  >
+                                    <Maximize2 className="w-3 h-3" />
+                                    <span className="text-[9px] font-semibold">Expandir</span>
+                                  </button>
                                   <AIExplainButton
                                     chartData={entityData}
                                     chartConfig={{
-                                      nombre: `${selectedEntity?.nombre} - ${field.replace(/_/g, ' ')}`,
+                                      nombre: `${selectedEntity?.nombre} - ${getFieldLabel(field)}`,
                                       metrica: field,
                                       temporalView: 'mensual'
                                     }}
@@ -634,8 +934,8 @@ export function RecursosHidricosPage() {
                   if (['id', 'nombre', 'tipo', 'descripcion', 'created_at', 'updated_at'].includes(key)) return null;
                   return (
                     <div key={key} className="bg-gray-50 rounded-lg p-2.5">
-                      <p className="text-[10px] font-semibold text-gray-600 mb-0.5 uppercase">
-                        {key.replace(/_/g, ' ')}
+                      <p className="text-[10px] font-semibold text-gray-600 mb-0.5">
+                        {getFieldLabel(key)}
                       </p>
                       <p className="text-xs text-gray-900">
                         {typeof value === 'object' ? JSON.stringify(value) : String(value)}
@@ -643,6 +943,139 @@ export function RecursosHidricosPage() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Chart Expansion Modal */}
+      {expandedChart && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4"
+            onClick={() => setExpandedChart(null)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{expandedChart.title}</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {expandedChart.entityName}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setExpandedChart(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6">
+                <ResponsiveContainer width="100%" height={500}>
+                  <AreaChart data={expandedChart.data}>
+                    <defs>
+                      <linearGradient id="expandedGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={expandedChart.color} stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor={expandedChart.color} stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis
+                      dataKey={expandedChart.timeField}
+                      tick={{ fontSize: 12 }}
+                      stroke="#6b7280"
+                      label={{
+                        value: getFieldLabel(expandedChart.timeField),
+                        position: 'insideBottom',
+                        offset: -5,
+                        style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
+                      }}
+                      height={60}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12 }}
+                      stroke="#6b7280"
+                      label={{
+                        value: expandedChart.title,
+                        angle: -90,
+                        position: 'insideLeft',
+                        style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
+                      }}
+                      width={70}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        padding: '8px 12px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: 14, paddingTop: '20px' }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey={expandedChart.field}
+                      stroke={expandedChart.color}
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#expandedGradient)"
+                      name={expandedChart.title}
+                      dot={{ r: 4, fill: expandedChart.color }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+
+                {/* Stats Summary */}
+                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {(() => {
+                    const values = expandedChart.data
+                      .map(d => d[expandedChart.field])
+                      .filter(v => v !== null && v !== undefined && !isNaN(v));
+
+                    if (values.length === 0) return null;
+
+                    const max = Math.max(...values);
+                    const min = Math.min(...values);
+                    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                    const sorted = [...values].sort((a, b) => a - b);
+                    const median = sorted.length % 2 === 0
+                      ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+                      : sorted[Math.floor(sorted.length / 2)];
+
+                    return (
+                      <>
+                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                          <p className="text-xs font-semibold text-blue-600 mb-1">PROMEDIO</p>
+                          <p className="text-2xl font-bold text-blue-900">{avg.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                          <p className="text-xs font-semibold text-purple-600 mb-1">MEDIANA</p>
+                          <p className="text-2xl font-bold text-purple-900">{median.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                          <p className="text-xs font-semibold text-green-600 mb-1">MÁXIMO</p>
+                          <p className="text-2xl font-bold text-green-900">{max.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                          <p className="text-xs font-semibold text-orange-600 mb-1">MÍNIMO</p>
+                          <p className="text-2xl font-bold text-orange-900">{min.toFixed(2)}</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           </div>

@@ -55,39 +55,55 @@ export function NavBar() {
         <nav className="hidden xl:flex items-center gap-0.5">
           <a
             href="/mapa-interactivo"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              pathname === '/mapa-interactivo'
+                ? 'text-emerald-700 bg-emerald-100 border-l-4 border-emerald-600'
+                : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
+            }`}
           >
             <MapPin className="w-3.5 h-3.5" />
             <span>Mapa</span>
           </a>
           <a
             href="/graficos-personalizados"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              pathname === '/graficos-personalizados'
+                ? 'text-emerald-700 bg-emerald-100 border-l-4 border-emerald-600'
+                : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
+            }`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
             <span>Gráficos</span>
           </a>
           <a
             href="/recursos-hidricos"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              pathname === '/recursos-hidricos'
+                ? 'text-emerald-700 bg-emerald-100 border-l-4 border-emerald-600'
+                : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
+            }`}
           >
             <Droplets className="w-3.5 h-3.5" />
             <span>Recursos Hídricos</span>
           </a>
           <a
             href="/api-docs"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              pathname === '/api-docs'
+                ? 'text-emerald-700 bg-emerald-100 border-l-4 border-emerald-600'
+                : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
+            }`}
           >
             <Code className="w-3.5 h-3.5" />
             <span>API</span>
           </a>
-          <button
+          {/* <button
             onClick={scrollToPrecios}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
           >
             <DollarSign className="w-3.5 h-3.5" />
             <span>Precios</span>
-          </button>
+          </button> */}
         </nav>
 
         {/* Botones de Auth - Desktop */}
@@ -157,7 +173,11 @@ export function NavBar() {
             <a
               href="/mapa-interactivo"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                pathname === '/mapa-interactivo'
+                  ? 'text-emerald-700 bg-emerald-100 border-l-4 border-emerald-600'
+                  : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
+              }`}
             >
               <MapPin className="w-4 h-4" />
               <span>Mapa Interactivo</span>
@@ -165,7 +185,11 @@ export function NavBar() {
             <a
               href="/graficos-personalizados"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                pathname === '/graficos-personalizados'
+                  ? 'text-emerald-700 bg-emerald-100 border-l-4 border-emerald-600'
+                  : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
+              }`}
             >
               <BarChart3 className="w-4 h-4" />
               <span>Gráficos Personalizados</span>
@@ -173,7 +197,11 @@ export function NavBar() {
             <a
               href="/recursos-hidricos"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                pathname === '/recursos-hidricos'
+                  ? 'text-emerald-700 bg-emerald-100 border-l-4 border-emerald-600'
+                  : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
+              }`}
             >
               <Droplets className="w-4 h-4" />
               <span>Recursos Hídricos</span>
@@ -181,18 +209,22 @@ export function NavBar() {
             <a
               href="/api-docs"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                pathname === '/api-docs'
+                  ? 'text-emerald-700 bg-emerald-100 border-l-4 border-emerald-600'
+                  : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
+              }`}
             >
               <Code className="w-4 h-4" />
               <span>Documentación API</span>
             </a>
-            <button
+            {/* <button
               onClick={scrollToPrecios}
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
             >
               <DollarSign className="w-4 h-4" />
               <span>Precios</span>
-            </button>
+            </button> */}
 
             <div className="flex flex-col gap-2 pt-4 mt-2 border-t border-gray-200">
               {user ? (

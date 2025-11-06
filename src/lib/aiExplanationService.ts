@@ -40,7 +40,6 @@ export interface ChartExplanationRequest {
 export interface ChartExplanationResponse {
   explanation: string;
   insights?: string[];
-  recommendations?: string[];
   error?: string;
 }
 
@@ -80,13 +79,31 @@ class AIExplanationService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      let data = await response.json();
+      console.log('🔍 Raw n8n response:', data);
 
-      return {
-        explanation: data.explanation || data.message || 'No se proporcionó explicación',
+      // If n8n returns an array, get the first item
+      if (Array.isArray(data) && data.length > 0) {
+        console.log('📦 Unwrapping array, getting first item');
+        data = data[0];
+      }
+
+      // Unwrap if n8n Output Parser wrapped it in "output" object
+      if (data.output && typeof data.output === 'object') {
+        console.log('📦 Unwrapping "output" object');
+        data = data.output;
+      }
+
+      console.log('✅ Parsed data:', data);
+
+      // Map response keys (explicacion + insights)
+      const result = {
+        explanation: data.explicacion || data.explanation || data.message || 'No se proporcionó explicación',
         insights: data.insights || [],
-        recommendations: data.recommendations || [],
       };
+
+      console.log('✅ Final result:', result);
+      return result;
 
     } catch (error) {
       console.error('Error calling AI explanation service:', error);

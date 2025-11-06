@@ -495,6 +495,7 @@ export function RecursosHidricosPage() {
                                       temporalView: 'mensual'
                                     }}
                                     userContext={{
+                                      selectedRegions: [selectedEntity?.nombre || 'Desconocido'],
                                       chartType: 'area'
                                     }}
                                     position="top-right"
@@ -566,6 +567,7 @@ export function RecursosHidricosPage() {
                                       temporalView: 'mensual'
                                     }}
                                     userContext={{
+                                      selectedRegions: [selectedEntity?.nombre || 'Desconocido'],
                                       chartType: 'area'
                                     }}
                                     position="top-right"

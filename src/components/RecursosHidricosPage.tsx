@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AIExplainButton } from './AIExplainButton';
 import {
   Droplets,
   Search,
@@ -482,10 +483,23 @@ export function RecursosHidricosPage() {
                           return (
                             <div className="space-y-4">
                               {Object.entries(parameterGroups).map(([paramName, paramData], index) => (
-                                <div key={paramName} className="bg-gray-50 rounded-lg p-3">
+                                <div key={paramName} className="bg-gray-50 rounded-lg p-3 relative">
                                   <h6 className="text-xs font-semibold text-gray-700 mb-2">
                                     {paramName}
                                   </h6>
+                                  <AIExplainButton
+                                    chartData={paramData}
+                                    chartConfig={{
+                                      nombre: `${selectedEntity?.nombre} - ${paramName}`,
+                                      metrica: paramName,
+                                      temporalView: 'mensual'
+                                    }}
+                                    userContext={{
+                                      selectedRegions: [selectedEntity?.nombre || 'Desconocido'],
+                                      chartType: 'area'
+                                    }}
+                                    position="top-right"
+                                  />
                                   <ResponsiveContainer width="100%" height={180}>
                                     <AreaChart data={paramData}>
                                       <defs>
@@ -541,10 +555,23 @@ export function RecursosHidricosPage() {
                           return (
                             <div className="space-y-4">
                               {numericFields.map((field, index) => (
-                                <div key={field} className="bg-gray-50 rounded-lg p-3">
+                                <div key={field} className="bg-gray-50 rounded-lg p-3 relative">
                                   <h6 className="text-xs font-semibold text-gray-700 mb-2 uppercase">
                                     {field.replace(/_/g, ' ')}
                                   </h6>
+                                  <AIExplainButton
+                                    chartData={entityData}
+                                    chartConfig={{
+                                      nombre: `${selectedEntity?.nombre} - ${field.replace(/_/g, ' ')}`,
+                                      metrica: field,
+                                      temporalView: 'mensual'
+                                    }}
+                                    userContext={{
+                                      selectedRegions: [selectedEntity?.nombre || 'Desconocido'],
+                                      chartType: 'area'
+                                    }}
+                                    position="top-right"
+                                  />
                                   <ResponsiveContainer width="100%" height={180}>
                                     <AreaChart data={entityData}>
                                       <defs>

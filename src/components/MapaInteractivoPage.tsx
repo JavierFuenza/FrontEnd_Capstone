@@ -1236,11 +1236,11 @@ export function MapaInteractivoPage() {
     };
 
     return (
-        <div className="relative h-screen pt-16 overflow-hidden bg-gray-50">
+        <div className="relative h-screen pt-12 overflow-hidden bg-gray-50">
 
             {/* LEFT SIDEBAR - Buscar + Filtros */}
             <div
-                className={`absolute top-16 left-0 h-full bg-white shadow-xl z-[1100] transition-transform duration-300 flex flex-col
+                className={`absolute top-12 left-0 h-full bg-white shadow-xl z-[1100] transition-transform duration-300 flex flex-col
                     ${leftSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                     w-full sm:w-96`}
             >
@@ -1317,7 +1317,7 @@ export function MapaInteractivoPage() {
 
             {/* RIGHT SIDEBAR - Panel de Datos */}
             <div
-                className={`absolute top-16 right-0 h-full bg-white shadow-xl z-[1200] transition-transform duration-300 flex flex-col
+                className={`absolute top-12 right-0 h-full bg-white shadow-xl z-[1200] transition-transform duration-300 flex flex-col
                     ${rightSidebarOpen ? 'translate-x-0' : 'translate-x-full'}
                     w-full sm:w-96 lg:w-[28rem]`}
             >

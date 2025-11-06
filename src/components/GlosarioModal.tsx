@@ -195,7 +195,7 @@ export function GlosarioModal({ isOpen, onClose }: GlosarioModalProps) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white">

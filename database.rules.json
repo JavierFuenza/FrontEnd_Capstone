@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "graficos": {
+      "$graficoId": {
+        ".read": "auth != null && (data.child('userId').val() === auth.uid)",
+        ".write": "auth != null && ((!data.exists() && newData.child('userId').val() === auth.uid) || (data.exists() && data.child('userId').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['nombre', 'lines', 'yearsFilter', 'temporalView', 'userId', 'fechaCreacion'])",
+        "userId": {
+          ".validate": "newData.isString() && newData.val() === auth.uid"
+        },
+        "nombre": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "fechaCreacion": {
+          ".validate": "newData.isString()"
+        },
+        "temporalView": {
+          ".validate": "newData.isString() && (newData.val() === 'mensual' || newData.val() === 'anual')"
+        }
+      }
+    }
+  }
+}

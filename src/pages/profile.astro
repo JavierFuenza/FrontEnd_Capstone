@@ -1,8 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { ProfilePage } from '../components/ProfilePage';
+import { ProfilePageWithAuth } from '../components/ProfilePageWithAuth';
 ---
 
 <Layout title="Mi Perfil - Observatorio Ambiental">
-  <ProfilePage client:load />
+  <ProfilePageWithAuth client:load />
 </Layout>

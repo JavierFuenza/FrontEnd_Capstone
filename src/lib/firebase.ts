@@ -2,13 +2,14 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
-import { getFirestore } from 'firebase/firestore';
+import { getDatabase } from 'firebase/database';
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
   authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.PUBLIC_FIREBASE_DATABASE_URL, // URL de Realtime Database
   projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
@@ -23,10 +24,10 @@ const app = initializeApp(firebaseConfig);
 // Firebase usa browserLocalPersistence por defecto, por lo que la sesión persiste automáticamente
 export const auth = getAuth(app);
 
-// Initialize Firestore
-export const db = getFirestore(app);
+// Initialize Realtime Database
+export const database = getDatabase(app);
 
-console.log('[Firebase] Auth y Firestore inicializados correctamente. Persistencia: LOCAL (por defecto)');
+console.log('[Firebase] Auth y Realtime Database inicializados correctamente. Persistencia: LOCAL (por defecto)');
 
 // Initialize Analytics (only on client-side)
 let analytics;

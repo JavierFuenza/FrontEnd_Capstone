@@ -70,7 +70,7 @@ const getPasswordRequirements = (password: string, email: string) => {
 };
 
 export function ProfilePage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -186,6 +186,21 @@ export function ProfilePage() {
     setSuccess("");
   };
 
+  // Mostrar loader mientras se verifica la autenticación
+  if (authLoading) {
+    return (
+      <div className="pt-32 pb-16 flex items-center justify-center min-h-screen px-4">
+        <Card className="w-full max-w-2xl">
+          <CardContent className="p-8 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-emerald-600" />
+            <p className="text-gray-600">Verificando sesión...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Si no está loggeado, mostrar mensaje
   if (!currentUser) {
     return (
       <div className="pt-32 pb-16 flex items-center justify-center min-h-screen px-4">

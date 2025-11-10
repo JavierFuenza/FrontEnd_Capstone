@@ -1,17 +1,14 @@
 // src/lib/chartService.ts
 import {
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  updateDoc,
-  doc,
-  query,
-  where,
-  orderBy,
+  ref,
+  push,
+  set,
+  get,
+  remove,
+  update,
   serverTimestamp
-} from 'firebase/firestore';
-import { db } from './firebase';
+} from 'firebase/database';
+import { database } from './firebase';
 
 // Tipos
 export interface LineConfig {
@@ -36,27 +33,30 @@ export interface SavedChart {
   userId: string; // ID del usuario que creó el gráfico
 }
 
-// Nombre de la colección en Firestore
-const CHARTS_COLLECTION = 'graficos';
+// Path base en Realtime Database
+const CHARTS_PATH = 'graficos';
 
 /**
- * Guarda un nuevo gráfico en Firestore vinculado al usuario
+ * Guarda un nuevo gráfico en Realtime Database vinculado al usuario
  */
 export async function saveChart(
   userId: string,
   chartData: Omit<SavedChart, 'id' | 'userId' | 'fechaCreacion'>
 ): Promise<string> {
   try {
+    const chartsRef = ref(database, CHARTS_PATH);
+    const newChartRef = push(chartsRef);
+
     const chartToSave = {
       ...chartData,
       userId,
       fechaCreacion: new Date().toISOString(),
-      createdAt: serverTimestamp() // Para ordenar en Firestore
+      createdAt: serverTimestamp() // Para ordenar
     };
 
-    const docRef = await addDoc(collection(db, CHARTS_COLLECTION), chartToSave);
-    console.log('[ChartService] Gráfico guardado con ID:', docRef.id);
-    return docRef.id;
+    await set(newChartRef, chartToSave);
+    console.log('[ChartService] Gráfico guardado con ID:', newChartRef.key);
+    return newChartRef.key!;
   } catch (error) {
     console.error('[ChartService] Error al guardar gráfico:', error);
     throw new Error('No se pudo guardar el gráfico. Por favor, intenta de nuevo.');
@@ -68,27 +68,34 @@ export async function saveChart(
  */
 export async function getUserCharts(userId: string): Promise<SavedChart[]> {
   try {
-    const q = query(
-      collection(db, CHARTS_COLLECTION),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
+    const chartsRef = ref(database, CHARTS_PATH);
+    const snapshot = await get(chartsRef);
 
-    const querySnapshot = await getDocs(q);
     const charts: SavedChart[] = [];
 
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      charts.push({
-        id: doc.id,
-        nombre: data.nombre,
-        lines: data.lines,
-        yearsFilter: data.yearsFilter,
-        temporalView: data.temporalView,
-        fechaCreacion: data.fechaCreacion,
-        userId: data.userId
+    if (snapshot.exists()) {
+      const allCharts = snapshot.val();
+
+      // Filtrar por userId y ordenar por fecha de creación
+      Object.entries(allCharts).forEach(([id, data]: [string, any]) => {
+        if (data.userId === userId) {
+          charts.push({
+            id,
+            nombre: data.nombre,
+            lines: data.lines,
+            yearsFilter: data.yearsFilter,
+            temporalView: data.temporalView,
+            fechaCreacion: data.fechaCreacion,
+            userId: data.userId
+          });
+        }
       });
-    });
+
+      // Ordenar por fecha de creación (más reciente primero)
+      charts.sort((a, b) =>
+        new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()
+      );
+    }
 
     console.log(`[ChartService] Se encontraron ${charts.length} gráficos para el usuario`);
     return charts;
@@ -103,7 +110,8 @@ export async function getUserCharts(userId: string): Promise<SavedChart[]> {
  */
 export async function deleteChart(chartId: string): Promise<void> {
   try {
-    await deleteDoc(doc(db, CHARTS_COLLECTION, chartId));
+    const chartRef = ref(database, `${CHARTS_PATH}/${chartId}`);
+    await remove(chartRef);
     console.log('[ChartService] Gráfico eliminado:', chartId);
   } catch (error) {
     console.error('[ChartService] Error al eliminar gráfico:', error);
@@ -119,8 +127,8 @@ export async function updateChart(
   updates: Partial<Omit<SavedChart, 'id' | 'userId'>>
 ): Promise<void> {
   try {
-    const chartRef = doc(db, CHARTS_COLLECTION, chartId);
-    await updateDoc(chartRef, {
+    const chartRef = ref(database, `${CHARTS_PATH}/${chartId}`);
+    await update(chartRef, {
       ...updates,
       updatedAt: serverTimestamp()
     });
@@ -132,7 +140,7 @@ export async function updateChart(
 }
 
 /**
- * Migra los gráficos existentes de localStorage a Firestore
+ * Migra los gráficos existentes de localStorage a Realtime Database
  */
 export async function migrateLocalStorageCharts(userId: string): Promise<number> {
   try {
@@ -156,7 +164,7 @@ export async function migrateLocalStorageCharts(userId: string): Promise<number>
 
     // Limpiar localStorage después de migrar
     localStorage.removeItem('graficos_savedCharts');
-    console.log(`[ChartService] Se migraron ${migratedCount} gráficos a Firestore`);
+    console.log(`[ChartService] Se migraron ${migratedCount} gráficos a Realtime Database`);
 
     return migratedCount;
   } catch (error) {

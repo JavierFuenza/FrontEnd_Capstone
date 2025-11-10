@@ -320,30 +320,60 @@ export function RecursosHidricosPage() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden pt-[48px]">
-      {/* Left Sidebar Panel */}
-      <div className={`${isPanelCollapsed ? 'w-0' : 'w-72'} bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden pt-2`}>
-        {/* Header */}
-        <div className="p-3 border-b border-gray-200 bg-gradient-to-r from-emerald-500 to-emerald-600">
-          <div className="flex items-center gap-1.5 text-white mb-1.5">
-            <Droplets className="w-5 h-5" />
-            <h2 className="text-base font-bold">Recursos Hídricos</h2>
+    <div className="flex flex-col sm:flex-row h-screen w-full overflow-hidden pt-[48px]">
+      {/* Toggle Button for Mobile (solo < 640px) */}
+      <button
+        onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+        className="sm:hidden fixed bottom-4 right-4 z-[60] bg-emerald-600 text-white p-3 rounded-full shadow-2xl hover:bg-emerald-700 transition-all"
+        aria-label="Toggle menu"
+      >
+        {isPanelCollapsed ? (
+          <Search className="w-5 h-5" />
+        ) : (
+          <X className="w-5 h-5" />
+        )}
+      </button>
+
+      {/* Left Sidebar Panel - Responsive */}
+      <div className={`
+        ${isPanelCollapsed ? 'hidden lg:flex' : 'flex'}
+        fixed sm:relative inset-0 sm:inset-auto
+        ${isPanelCollapsed ? 'lg:w-0' : 'w-full sm:w-80 lg:w-72 xl:w-80'}
+        bg-white border-r border-gray-200 flex-col transition-all duration-300 overflow-hidden
+        pt-[48px] sm:pt-2
+        z-[45] sm:z-auto
+      `}>
+        {/* Header - Responsive */}
+        <div className="p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-emerald-500 to-emerald-600">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-white">
+              <Droplets className="w-5 h-5 sm:w-6 sm:h-6" />
+              <div>
+                <h2 className="text-base sm:text-lg font-bold">Recursos Hídricos</h2>
+                <p className="text-[10px] sm:text-xs text-emerald-100 hidden sm:block">
+                  Sistema de gestión de recursos acuáticos
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsPanelCollapsed(true)}
+              className="sm:hidden text-white hover:bg-emerald-600 p-1.5 rounded transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <p className="text-xs text-emerald-100">
-            Sistema de gestión de recursos acuáticos
-          </p>
         </div>
 
-        {/* Search Bar */}
-        <div className="p-3 border-b border-gray-200">
+        {/* Search Bar - Responsive */}
+        <div className="p-3 sm:p-4 border-b border-gray-200">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               type="text"
               placeholder="Buscar entidades..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9 h-8 text-sm"
+              className="pl-9 pr-9 h-9 sm:h-10 text-sm"
             />
             {searchQuery && (
               <button
@@ -461,52 +491,65 @@ export function RecursosHidricosPage() {
         </div>
       </div>
 
-      {/* Collapse Button */}
+      {/* Collapse Button - Botón lateral para toggle rápido */}
       <button
         onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-        className="absolute left-72 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-r-lg px-1 py-2.5 hover:bg-gray-50 transition-all shadow-md"
-        style={{ left: isPanelCollapsed ? '0' : '288px' }}
+        className="hidden sm:block absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-r-lg px-1 py-2.5 hover:bg-gray-50 transition-all shadow-md"
+        style={{ left: isPanelCollapsed ? '0' : '320px' }}
       >
         {isPanelCollapsed ? <ChevronDown className="w-3.5 h-3.5 rotate-90" /> : <ChevronUp className="w-3.5 h-3.5 rotate-90" />}
       </button>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
-        {/* Top Bar */}
-        <div className="bg-white border-b border-gray-200 px-5 py-3">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
+      {/* Main Content Area - Responsive */}
+      <div className={`
+        flex-1 flex flex-col overflow-hidden bg-gray-50
+        ${!isPanelCollapsed ? 'hidden sm:flex' : 'flex'}
+      `}>
+        {/* Top Bar - Responsive */}
+        <div className="bg-white border-b border-gray-200 px-3 sm:px-4 md:px-5 py-2 sm:py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2 sm:mb-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 truncate">
                 {selectedEntityType
                   ? entityTypes.find(t => t.value === selectedEntityType)?.label
                   : 'Todas las Entidades'}
               </h1>
-              <p className="text-xs text-gray-600 mt-0.5">
+              <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
                 {loading ? 'Cargando...' : `${filteredEntities.length} entidad(es) encontrada(s)`}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <Button
+                onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs px-3"
+              >
+                <Search className="w-4 h-4 mr-1.5" />
+                {isPanelCollapsed ? 'Mostrar' : 'Ocultar'} Filtros
+              </Button>
+              <Button
                 onClick={fetchEntities}
                 variant="outline"
                 size="sm"
                 disabled={loading}
-                className="h-7 text-xs px-2.5"
+                className="h-8 text-xs px-2.5 sm:px-3"
               >
-                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
-                Actualizar
+                {loading ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin mr-1 sm:mr-1.5" /> : null}
+                <span className="hidden sm:inline">Actualizar</span>
+                <span className="sm:hidden">🔄</span>
               </Button>
             </div>
           </div>
-          {/* Search bar in main content */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          {/* Search bar in main content - Responsive */}
+          <div className="relative max-w-full sm:max-w-md">
+            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
             <Input
               type="text"
-              placeholder="Buscar estaciones por nombre..."
+              placeholder="Buscar estaciones..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9 h-8 text-sm"
+              className="pl-9 pr-9 h-9 sm:h-10 text-sm"
             />
             {searchQuery && (
               <button
@@ -520,7 +563,7 @@ export function RecursosHidricosPage() {
         </div>
 
         {/* Content Grid */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -549,7 +592,11 @@ export function RecursosHidricosPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className={`grid gap-2.5 sm:gap-3 ${
+                isPanelCollapsed
+                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                  : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'
+              }`}>
                 {paginatedEntities.map((entity) => {
                 const typeInfo = entityTypes.find(t => t.value === entity.tipo);
                 return (
@@ -601,62 +648,64 @@ export function RecursosHidricosPage() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-center gap-2 pb-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="h-8 px-3 text-xs"
-                >
-                  <ChevronDown className="w-4 h-4 rotate-90" />
-                  Anterior
-                </Button>
+              <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-2 pb-4">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="h-7 sm:h-8 px-2 sm:px-3 text-xs"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 rotate-90" />
+                    <span className="hidden sm:inline">Anterior</span>
+                  </Button>
 
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
 
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => goToPage(pageNum)}
-                        className={`h-8 w-8 p-0 text-xs ${
-                          currentPage === pageNum
-                            ? 'bg-emerald-600 hover:bg-emerald-700'
-                            : ''
-                        }`}
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => goToPage(pageNum)}
+                          className={`h-7 w-7 sm:h-8 sm:w-8 p-0 text-xs ${
+                            currentPage === pageNum
+                              ? 'bg-emerald-600 hover:bg-emerald-700'
+                              : ''
+                          }`}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="h-7 sm:h-8 px-2 sm:px-3 text-xs"
+                  >
+                    <span className="hidden sm:inline">Siguiente</span>
+                    <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 -rotate-90" />
+                  </Button>
                 </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="h-8 px-3 text-xs"
-                >
-                  Siguiente
-                  <ChevronDown className="w-4 h-4 -rotate-90" />
-                </Button>
-
-                <div className="ml-4 text-xs text-gray-600">
-                  Mostrando {startIndex + 1}-{Math.min(endIndex, filteredEntities.length)} de {filteredEntities.length}
+                <div className="text-xs text-gray-600 text-center sm:text-left sm:ml-4">
+                  {startIndex + 1}-{Math.min(endIndex, filteredEntities.length)} de {filteredEntities.length}
                 </div>
               </div>
             )}
@@ -672,7 +721,7 @@ export function RecursosHidricosPage() {
             className="fixed inset-0 bg-black bg-opacity-30 z-40 pt-[48px]"
             onClick={() => setSelectedEntity(null)}
           />
-          <div className="fixed right-0 top-[48px] h-[calc(100vh-48px)] w-[432px] bg-white shadow-2xl z-50 overflow-y-auto">
+          <div className="fixed right-0 top-[48px] h-[calc(100vh-48px)] w-full sm:w-[90%] md:w-[500px] lg:w-[432px] bg-white shadow-2xl z-50 overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-3 flex items-center justify-between z-10">
               <h3 className="text-base font-bold text-gray-900">Detalles</h3>
               <button
@@ -929,19 +978,19 @@ export function RecursosHidricosPage() {
       {expandedChart && (
         <>
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-2 sm:p-4"
             onClick={() => setExpandedChart(null)}
           >
             <div
-              className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-lg sm:rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-                <div className="flex items-center gap-3 flex-1">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">{expandedChart.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between z-10">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-xl font-bold text-gray-900 truncate">{expandedChart.title}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 truncate">
                       {expandedChart.entityName}
                     </p>
                   </div>
@@ -972,8 +1021,8 @@ export function RecursosHidricosPage() {
               </div>
 
               {/* Modal Content */}
-              <div className="p-6">
-                <ResponsiveContainer width="100%" height={500}>
+              <div className="p-3 sm:p-6">
+                <ResponsiveContainer width="100%" height={350} className="sm:h-[500px]">
                   <AreaChart data={expandedChart.data}>
                     <defs>
                       <linearGradient id="expandedGradient" x1="0" y1="0" x2="0" y2="1">
@@ -984,56 +1033,46 @@ export function RecursosHidricosPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey={expandedChart.timeField}
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 10 }}
                       stroke="#6b7280"
-                      label={{
-                        value: getFieldLabel(expandedChart.timeField),
-                        position: 'insideBottom',
-                        offset: -5,
-                        style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
-                      }}
+                      angle={-45}
+                      textAnchor="end"
                       height={60}
                     />
                     <YAxis
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 10 }}
                       stroke="#6b7280"
-                      label={{
-                        value: expandedChart.title,
-                        angle: -90,
-                        position: 'insideLeft',
-                        style: { fontSize: 14, fontWeight: '600', fill: '#374151' }
-                      }}
-                      width={70}
+                      width={45}
                     />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: 'rgba(255, 255, 255, 0.98)',
                         border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        padding: '6px 10px',
                         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                       }}
                     />
                     <Legend
-                      wrapperStyle={{ fontSize: 14, paddingTop: '20px' }}
+                      wrapperStyle={{ fontSize: 11, paddingTop: '10px' }}
                     />
                     <Area
                       type="monotone"
                       dataKey={expandedChart.field}
                       stroke={expandedChart.color}
-                      strokeWidth={3}
+                      strokeWidth={2}
                       fillOpacity={1}
                       fill="url(#expandedGradient)"
                       name={expandedChart.title}
-                      dot={{ r: 4, fill: expandedChart.color }}
-                      activeDot={{ r: 6 }}
+                      dot={{ r: 2, fill: expandedChart.color }}
+                      activeDot={{ r: 4 }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
 
                 {/* Stats Summary */}
-                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
                   {(() => {
                     const values = expandedChart.data
                       .map(d => d[expandedChart.field])
@@ -1051,21 +1090,21 @@ export function RecursosHidricosPage() {
 
                     return (
                       <>
-                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                          <p className="text-xs font-semibold text-blue-600 mb-1">PROMEDIO</p>
-                          <p className="text-2xl font-bold text-blue-900">{avg.toFixed(2)}</p>
+                        <div className="bg-blue-50 rounded-lg p-2.5 sm:p-4 border border-blue-200">
+                          <p className="text-[10px] sm:text-xs font-semibold text-blue-600 mb-0.5 sm:mb-1">PROMEDIO</p>
+                          <p className="text-lg sm:text-2xl font-bold text-blue-900">{avg.toFixed(2)}</p>
                         </div>
-                        <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-                          <p className="text-xs font-semibold text-purple-600 mb-1">MEDIANA</p>
-                          <p className="text-2xl font-bold text-purple-900">{median.toFixed(2)}</p>
+                        <div className="bg-purple-50 rounded-lg p-2.5 sm:p-4 border border-purple-200">
+                          <p className="text-[10px] sm:text-xs font-semibold text-purple-600 mb-0.5 sm:mb-1">MEDIANA</p>
+                          <p className="text-lg sm:text-2xl font-bold text-purple-900">{median.toFixed(2)}</p>
                         </div>
-                        <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                          <p className="text-xs font-semibold text-green-600 mb-1">MÁXIMO</p>
-                          <p className="text-2xl font-bold text-green-900">{max.toFixed(2)}</p>
+                        <div className="bg-green-50 rounded-lg p-2.5 sm:p-4 border border-green-200">
+                          <p className="text-[10px] sm:text-xs font-semibold text-green-600 mb-0.5 sm:mb-1">MÁXIMO</p>
+                          <p className="text-lg sm:text-2xl font-bold text-green-900">{max.toFixed(2)}</p>
                         </div>
-                        <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                          <p className="text-xs font-semibold text-orange-600 mb-1">MÍNIMO</p>
-                          <p className="text-2xl font-bold text-orange-900">{min.toFixed(2)}</p>
+                        <div className="bg-orange-50 rounded-lg p-2.5 sm:p-4 border border-orange-200">
+                          <p className="text-[10px] sm:text-xs font-semibold text-orange-600 mb-0.5 sm:mb-1">MÍNIMO</p>
+                          <p className="text-lg sm:text-2xl font-bold text-orange-900">{min.toFixed(2)}</p>
                         </div>
                       </>
                     );

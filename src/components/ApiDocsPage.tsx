@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
+import { ApiTokenSection } from "./ApiTokenSection";
 
 export function ApiDocsPage() {
   const [openEndpoints, setOpenEndpoints] = useState<string[]>([]);
@@ -20,6 +21,11 @@ export function ApiDocsPage() {
           Accede a datos ambientales en tiempo real de Chile. Obtén información sobre calidad del aire, recursos
           hídricos y condiciones climáticas de todas las regiones del país.
         </p>
+      </div>
+
+      {/* API Token Section */}
+      <div className="mb-12">
+        <ApiTokenSection />
       </div>
 
       <Card className="mb-8">

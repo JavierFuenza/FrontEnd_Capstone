@@ -8,6 +8,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { Map } from './Map';
 import { Badge } from "@/components/ui/badge";
 import { GlosarioModal } from './GlosarioModal';
+import { AIExplainButton } from './AIExplainButton';
 import html2canvas from 'html2canvas';
 
 interface Estacion {
@@ -1473,7 +1474,27 @@ export function MapaInteractivoPage() {
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
-                                <h3 className="text-2xl font-bold">{expandedChart.config.title}</h3>
+                                <div className="flex items-center gap-3 flex-1">
+                                    <h3 className="text-2xl font-bold">{expandedChart.config.title}</h3>
+                                    {/* AI Explain Button en modal expandido */}
+                                    <AIExplainButton
+                                        chartData={modalDisplayData}
+                                        chartConfig={{
+                                            metric: selectedMetric,
+                                            station: selectedEstacion?.nombre || '',
+                                            temporalView: currentView,
+                                            timeRange: currentTimeRange,
+                                            dataKeys: expandedChart.config.dataKeys,
+                                            labels: expandedChart.config.labels
+                                        }}
+                                        userContext={{
+                                            selectedStation: selectedEstacion?.nombre,
+                                            chartType: useBarChart ? 'bar' : 'line',
+                                            expanded: true
+                                        }}
+                                        position="inline"
+                                    />
+                                </div>
                                 <Button
                                     variant="ghost"
                                     size="sm"

@@ -33,7 +33,7 @@ interface AIExplainButtonProps {
     };
     chartType?: string;
   };
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'inline';
   className?: string;
 }
 
@@ -49,10 +49,11 @@ export function AIExplainButton({
   const [explanation, setExplanation] = useState<ChartExplanationResponse | null>(null);
 
   const positionClasses = {
-    'top-right': 'top-2 right-2',
-    'top-left': 'top-2 left-2',
-    'bottom-right': 'bottom-2 right-2',
-    'bottom-left': 'bottom-2 left-2',
+    'top-right': 'absolute top-2 right-2',
+    'top-left': 'absolute top-2 left-2',
+    'bottom-right': 'absolute bottom-2 right-2',
+    'bottom-left': 'absolute bottom-2 left-2',
+    'inline': 'relative',
   };
 
   const handleExplain = async () => {
@@ -90,7 +91,7 @@ export function AIExplainButton({
   };
 
   return (
-    <div className={`absolute ${positionClasses[position]} ${className} z-10`}>
+    <div className={`${positionClasses[position]} ${className} z-10`}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -107,7 +108,7 @@ export function AIExplainButton({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-96 max-h-[500px] overflow-y-auto" align="end">
+        <PopoverContent className="w-96 max-h-[500px] overflow-y-auto z-[99999]" align="end">
           <div className="space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2">

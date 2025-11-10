@@ -768,7 +768,8 @@ export function RecursosHidricosPage() {
                                       field: 'value',
                                       timeField: timeField,
                                       color: colors[index % colors.length],
-                                      entityName: selectedEntity?.nombre || ''
+                                      entityName: selectedEntity?.nombre || '',
+                                      metricName: paramName
                                     })}
                                     className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors shadow-sm z-10"
                                     title="Expandir gráfico"
@@ -776,19 +777,6 @@ export function RecursosHidricosPage() {
                                     <Maximize2 className="w-3 h-3" />
                                     <span className="text-[9px] font-semibold">Expandir</span>
                                   </button>
-                                  <AIExplainButton
-                                    chartData={chartData}
-                                    chartConfig={{
-                                      nombre: `${selectedEntity?.nombre} - ${paramName}`,
-                                      metrica: paramName,
-                                      temporalView: 'mensual'
-                                    }}
-                                    userContext={{
-                                      selectedRegions: [selectedEntity?.nombre || 'Desconocido'],
-                                      chartType: 'area'
-                                    }}
-                                    position="top-right"
-                                  />
                                   <ResponsiveContainer width="100%" height={160}>
                                     <AreaChart data={chartData}>
                                       <defs>
@@ -856,7 +844,8 @@ export function RecursosHidricosPage() {
                                       field: field,
                                       timeField: timeField,
                                       color: colors[index % colors.length],
-                                      entityName: selectedEntity?.nombre || ''
+                                      entityName: selectedEntity?.nombre || '',
+                                      metricName: field
                                     })}
                                     className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors shadow-sm z-10"
                                     title="Expandir gráfico"
@@ -864,19 +853,6 @@ export function RecursosHidricosPage() {
                                     <Maximize2 className="w-3 h-3" />
                                     <span className="text-[9px] font-semibold">Expandir</span>
                                   </button>
-                                  <AIExplainButton
-                                    chartData={entityData}
-                                    chartConfig={{
-                                      nombre: `${selectedEntity?.nombre} - ${getFieldLabel(field)}`,
-                                      metrica: field,
-                                      temporalView: 'mensual'
-                                    }}
-                                    userContext={{
-                                      selectedRegions: [selectedEntity?.nombre || 'Desconocido'],
-                                      chartType: 'area'
-                                    }}
-                                    position="top-right"
-                                  />
                                   <ResponsiveContainer width="100%" height={160}>
                                     <AreaChart data={entityData}>
                                       <defs>
@@ -962,11 +938,30 @@ export function RecursosHidricosPage() {
             >
               {/* Modal Header */}
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">{expandedChart.title}</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {expandedChart.entityName}
-                  </p>
+                <div className="flex items-center gap-3 flex-1">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{expandedChart.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {expandedChart.entityName}
+                    </p>
+                  </div>
+                  {/* AI Explain Button en modal expandido */}
+                  <AIExplainButton
+                    chartData={expandedChart.data}
+                    chartConfig={{
+                      nombre: `${expandedChart.entityName} - ${expandedChart.title}`,
+                      metrica: expandedChart.metricName || expandedChart.field,
+                      temporalView: 'mensual',
+                      field: expandedChart.field,
+                      timeField: expandedChart.timeField
+                    }}
+                    userContext={{
+                      selectedRegions: [expandedChart.entityName],
+                      chartType: 'area',
+                      expanded: true
+                    }}
+                    position="inline"
+                  />
                 </div>
                 <button
                   onClick={() => setExpandedChart(null)}

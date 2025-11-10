@@ -28,24 +28,6 @@ export function ApiDocsPage() {
         <ApiTokenSection />
       </div>
 
-      <Card className="mb-8">
-        <CardHeader><CardTitle>Límites de Uso</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-              <h4 className="font-semibold text-green-800">Plan Gratuito</h4>
-              <p className="text-2xl font-bold text-green-600 my-2">5,000</p>
-              <p className="text-sm text-green-700">peticiones/mes</p>
-            </div>
-            <div className="text-center p-4 bg-teal-50 rounded-lg border border-teal-200">
-              <h4 className="font-semibold text-teal-800">Plan Pro</h4>
-              <p className="text-2xl font-bold text-teal-600 my-2">Ilimitado</p>
-              <p className="text-sm text-teal-700">peticiones/mes</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Endpoints Disponibles</h2>
         

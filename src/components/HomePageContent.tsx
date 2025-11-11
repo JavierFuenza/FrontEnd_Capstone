@@ -1,7 +1,7 @@
 // src/components/HomePageContent.tsx
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { MapPin, BarChart3, ChevronLeft, ChevronRight, AlertTriangle, Lightbulb, Users, Droplets } from "lucide-react";
+import { MapPin, BarChart3, ChevronLeft, ChevronRight, AlertTriangle, Lightbulb, Users, Droplets, Code } from "lucide-react";
 import { PricingCard } from "./PricingCard";
 
 type Plan = {
@@ -40,25 +40,39 @@ const pricingPlans: Plan[] = [
   },
 ];
 
-// Datos del carrusel
+// Datos del carrusel - Funcionalidades principales
 const infoSlides = [
   {
-    icon: AlertTriangle,
-    title: "El Desafío Ambiental de Chile",
-    content: "Actualmente, los datos ambientales en Chile se encuentran dispersos en múltiples fuentes gubernamentales, dificultando el acceso a información crítica sobre la calidad del aire, agua y recursos naturales. Esta fragmentación impide que ciudadanos, investigadores y organizaciones tomen decisiones informadas sobre el estado real de nuestro medio ambiente.",
-    color: "from-orange-500 to-red-500"
+    icon: MapPin,
+    title: "Mapa Interactivo",
+    content: "Explora datos ambientales de todas las regiones de Chile en un mapa interactivo. Visualiza información sobre calidad del aire, temperatura, contaminantes y más. Selecciona regiones específicas y accede a datos detallados de cada zona del país.",
+    color: "from-emerald-500 to-teal-500",
+    link: "/mapa-interactivo",
+    buttonText: "Explorar Mapa"
   },
   {
-    icon: Lightbulb,
-    title: "Nuestra Solución",
-    content: "El Observatorio Ambiental Digital centraliza y visualiza datos de múltiples fuentes oficiales en una plataforma intuitiva y accesible. Ofrecemos herramientas avanzadas de análisis, mapas interactivos y gráficos personalizables que transforman datos complejos en información clara y accionable. Democratizamos el acceso a la información ambiental para impulsar la transparencia y conciencia ecológica en todo Chile.",
-    color: "from-emerald-500 to-teal-500"
+    icon: BarChart3,
+    title: "Gráficos Personalizados",
+    content: "Crea y personaliza gráficos avanzados para analizar tendencias ambientales. Compara datos entre múltiples regiones, aplica filtros temporales y exporta tus análisis. Herramientas profesionales para investigadores y estudiantes.",
+    color: "from-blue-500 to-indigo-500",
+    link: "/graficos-personalizados",
+    buttonText: "Crear Gráficos"
   },
   {
-    icon: Users,
-    title: "Quiénes Somos",
-    content: "Somos un equipo multidisciplinario de ingenieros en desarrollo de software comprometidos con el impacto social y ambiental. Este proyecto representa nuestro trabajo de titulación (Capstone), donde aplicamos tecnologías modernas y mejores prácticas de desarrollo para crear una solución real que beneficie a la comunidad, promoviendo la transparencia de datos y facilitando la investigación ambiental en Chile.",
-    color: "from-blue-500 to-indigo-500"
+    icon: Droplets,
+    title: "Recursos Hídricos",
+    content: "Accede a información detallada sobre estaciones de monitoreo hidrológico y acuático. Consulta datos de cuencas, embalses, estaciones fluviométricas, meteorológicas y calidad de aguas costeras. Sistema completo de gestión de recursos hídricos.",
+    color: "from-cyan-500 to-blue-500",
+    link: "/recursos-hidricos",
+    buttonText: "Ver Estaciones"
+  },
+  {
+    icon: Code,
+    title: "API Pública",
+    content: "Integra datos ambientales en tus propias aplicaciones mediante nuestra API REST. Acceso programático a todos los datos de la plataforma con documentación completa y ejemplos de código. Ideal para desarrolladores e investigadores.",
+    color: "from-purple-500 to-pink-500",
+    link: "/api-docs",
+    buttonText: "Ver Documentación"
   }
 ];
 
@@ -143,9 +157,18 @@ export function HomePageContent() {
                         </h2>
 
                         {/* Contenido */}
-                        <p className="text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed max-w-3xl px-2">
+                        <p className="text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed max-w-3xl px-2 mb-6">
                           {slide.content}
                         </p>
+
+                        {/* Botón de acción */}
+                        <a
+                          href={slide.link}
+                          className={`inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r ${slide.color} text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all hover:scale-105`}
+                        >
+                          {slide.buttonText}
+                          <ChevronRight className="w-5 h-5" />
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -188,53 +211,54 @@ export function HomePageContent() {
         </div>
       </div>
 
-      {/* Feature Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-12 md:mb-16 lg:mb-20">
-        <a href="/mapa-interactivo">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-b-4 border-b-emerald-500">
+      {/* Sobre Nosotros - Cards informativas */}
+      <div className="mb-12 md:mb-16 lg:mb-20">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-8 md:mb-10">
+          Sobre el Proyecto
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+          <Card className="h-full border-t-4 border-t-orange-500 hover:shadow-lg transition-shadow">
             <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                  <MapPin className="w-6 h-6 text-emerald-600" />
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                  <AlertTriangle className="w-8 h-8 text-white" />
                 </div>
-                <CardTitle className="text-xl">Mapa Interactivo</CardTitle>
+                <CardTitle className="text-xl mb-3">El Problema</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  Los datos ambientales en Chile están dispersos en múltiples fuentes gubernamentales, dificultando el acceso a información crítica. Esta fragmentación impide que ciudadanos, investigadores y organizaciones tomen decisiones informadas sobre el medio ambiente.
+                </CardDescription>
               </div>
-              <CardDescription className="text-base">
-                Explora datos ambientales por región.
-              </CardDescription>
             </CardHeader>
           </Card>
-        </a>
-        <a href="/graficos-personalizados">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-b-4 border-b-emerald-500">
+
+          <Card className="h-full border-t-4 border-t-emerald-500 hover:shadow-lg transition-shadow">
             <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="w-6 h-6 text-emerald-600" />
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                  <Lightbulb className="w-8 h-8 text-white" />
                 </div>
-                <CardTitle className="text-xl">Gráficos Personalizados</CardTitle>
+                <CardTitle className="text-xl mb-3">Nuestra Solución</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  Centralizamos y visualizamos datos de múltiples fuentes oficiales en una plataforma intuitiva. Ofrecemos herramientas avanzadas de análisis, mapas interactivos y gráficos personalizables que transforman datos complejos en información clara y accionable.
+                </CardDescription>
               </div>
-              <CardDescription className="text-base">
-                Herramientas avanzadas de análisis para investigadores.
-              </CardDescription>
             </CardHeader>
           </Card>
-        </a>
-        <a href="/recursos-hidricos">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-b-4 border-b-emerald-500">
+
+          <Card className="h-full border-t-4 border-t-blue-500 hover:shadow-lg transition-shadow">
             <CardHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                  <Droplets className="w-6 h-6 text-emerald-600" />
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                  <Users className="w-8 h-8 text-white" />
                 </div>
-                <CardTitle className="text-xl">Recursos Hídricos</CardTitle>
+                <CardTitle className="text-xl mb-3">Quiénes Somos</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  Equipo multidisciplinario de ingenieros en desarrollo de software comprometidos con el impacto social y ambiental. Este proyecto Capstone aplica tecnologías modernas para beneficiar a la comunidad, promoviendo la transparencia de datos ambientales en Chile.
+                </CardDescription>
               </div>
-              <CardDescription className="text-base">
-                Gestiona estaciones de monitoreo hidrológico y acuático.
-              </CardDescription>
             </CardHeader>
           </Card>
-        </a>
+        </div>
       </div>
 
       {/* <div id="precios-section" className="text-center mb-8 md:mb-12 px-4">
@@ -251,12 +275,6 @@ export function HomePageContent() {
         ))}
       </div> */}
 
-      {/* Footer CTA */}
-      <div className="text-center">
-        <a href="/api-docs" className="text-emerald-600 hover:text-emerald-700 font-medium">
-          Ver Documentación API →
-        </a>
-      </div>
     </>
   );
 }

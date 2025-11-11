@@ -35,6 +35,11 @@ export function Footer() {
                 </a>
               </li>
               <li>
+                <a href="/recursos-hidricos" className="text-gray-300 hover:text-emerald-400 transition-colors">
+                  Recursos Hídricos
+                </a>
+              </li>
+              <li>
                 <a href="/api-docs" className="text-gray-300 hover:text-emerald-400 transition-colors">
                   API
                 </a>

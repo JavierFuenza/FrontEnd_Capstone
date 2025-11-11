@@ -11,23 +11,14 @@ import html2canvas from 'html2canvas';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveChart, getUserCharts, deleteChart, migrateLocalStorageCharts } from '@/lib/chartService';
 import type { SavedChart as FirestoreSavedChart } from '@/lib/chartService';
+import { EXTENDED_COLOR_PALETTE } from '@/lib/colorPalette';
 
 const API_BASE_URL = `${import.meta.env.PUBLIC_API_BASE_URL}api/private`;
 
-// Colores para las líneas del gráfico
-// Diferentes tonos de verde para distinguir líneas de distintas estaciones
-const COLORS = [
-  "#10b981", // emerald-500
-  "#059669", // emerald-600
-  "#047857", // emerald-700
-  "#065f46", // emerald-800
-  "#064e3b", // emerald-900
-  "#34d399", // emerald-400
-  "#6ee7b7", // emerald-300
-  "#14b8a6", // teal-500
-  "#0d9488", // teal-600
-  "#0f766e"  // teal-700
-];
+// Paleta de colores accesible para personas con daltonismo
+// Colores distinguibles que consideran deuteranopia, protanopia y tritanopia
+// Basada en las paletas de Paul Tol e IBM Design para accesibilidad
+const COLORS = EXTENDED_COLOR_PALETTE;
 
 interface LineConfig {
   id: string;

@@ -30,6 +30,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
+import { EXTENDED_COLOR_PALETTE } from '@/lib/colorPalette';
 
 const API_BASE_URL = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8000/';
 
@@ -788,7 +789,8 @@ export function RecursosHidricosPage() {
                         // Verificar si hay parámetros (para metales disueltos/sedimentos)
                         const hasParameters = entityData[0]?.parametros_poal !== undefined;
 
-                        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+                        // Usar paleta accesible para daltónicos
+                        const colors = EXTENDED_COLOR_PALETTE;
 
                         if (hasParameters) {
                           // Agrupar datos por parámetro

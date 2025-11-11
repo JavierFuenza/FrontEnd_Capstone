@@ -1237,11 +1237,11 @@ export function MapaInteractivoPage() {
     };
 
     return (
-        <div className="relative h-screen pt-12 overflow-hidden bg-gray-50">
+        <div className="relative h-screen pt-16 overflow-hidden bg-gray-50">
 
             {/* LEFT SIDEBAR - Buscar + Filtros */}
             <div
-                className={`absolute top-12 left-0 h-full bg-white shadow-xl z-[1100] transition-transform duration-300 flex flex-col
+                className={`absolute top-16 left-0 h-full bg-white shadow-xl z-[900] transition-transform duration-300 flex flex-col
                     ${leftSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                     w-full sm:w-96`}
             >
@@ -1318,7 +1318,7 @@ export function MapaInteractivoPage() {
 
             {/* RIGHT SIDEBAR - Panel de Datos */}
             <div
-                className={`absolute top-12 right-0 h-full bg-white shadow-xl z-[1200] transition-transform duration-300 flex flex-col
+                className={`absolute top-16 right-0 h-full bg-white shadow-xl z-[950] transition-transform duration-300 flex flex-col
                     ${rightSidebarOpen ? 'translate-x-0' : 'translate-x-full'}
                     w-full sm:w-96 lg:w-[28rem]`}
             >
@@ -1388,7 +1388,7 @@ export function MapaInteractivoPage() {
             </div>
 
             {/* MAPA PRINCIPAL */}
-            <div className="w-full h-full relative z-0">
+            <div className="w-full h-full relative z-10">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center h-full bg-gray-50">
                         <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mb-4" />
@@ -1407,7 +1407,7 @@ export function MapaInteractivoPage() {
 
             {/* BOTÓN FLOTANTE - Buscar estaciones */}
             {!leftSidebarOpen && (
-                <div className="fixed top-20 left-4 z-[1100] flex flex-col gap-2">
+                <div className="fixed top-20 left-4 z-[800] flex flex-col gap-2">
                     <button
                         className="shadow-2xl bg-white hover:bg-gray-100 text-gray-700 border-2 border-gray-300 w-14 h-14 rounded-full flex items-center justify-center transition-all cursor-pointer"
                         onClick={() => setLeftSidebarOpen(true)}

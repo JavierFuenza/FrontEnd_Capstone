@@ -497,7 +497,7 @@ export function GraficosPageContent() {
     }
   };
 
-  // Función para parsear fechas en formato "YYYY Mes" o "YYYY-MM" a Date
+  // Función para parsear fechas en formato "YYYY Mes", "YYYY-MM", "YYYY-MM-DD" a Date
   const parseMonthYear = (dateStr: string): Date | null => {
     if (!dateStr) return null;
 
@@ -517,14 +517,24 @@ export function GraficosPageContent() {
       }
     }
 
-    // Intentar parsear formato "YYYY-MM"
+    // Intentar parsear formato "YYYY-MM" o "YYYY-MM-DD"
     const dateParts = dateStr.split('-');
     if (dateParts.length >= 2) {
       const year = parseInt(dateParts[0]);
       const month = parseInt(dateParts[1]) - 1;
-      if (!isNaN(year) && !isNaN(month)) {
+      if (!isNaN(year) && !isNaN(month) && month >= 0 && month <= 11) {
         return new Date(year, month, 1);
       }
+    }
+
+    // Intentar parsear como fecha ISO completa
+    try {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    } catch (e) {
+      // Ignorar errores de parseo
     }
 
     return null;
@@ -614,8 +624,17 @@ export function GraficosPageContent() {
       }
     });
 
-    // Convertir a array y ordenar por periodo
+    // Convertir a array y ordenar por periodo cronológicamente
     let resultado = Array.from(periodoMap.values()).sort((a, b) => {
+      // Intentar parsear como fecha
+      const dateA = parseMonthYear(a.periodo);
+      const dateB = parseMonthYear(b.periodo);
+
+      if (dateA && dateB) {
+        return dateA.getTime() - dateB.getTime();
+      }
+
+      // Si no se puede parsear, usar comparación de strings como fallback
       return a.periodo.localeCompare(b.periodo);
     });
 

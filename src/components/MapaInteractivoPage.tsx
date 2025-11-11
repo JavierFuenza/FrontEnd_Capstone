@@ -337,7 +337,7 @@ export function MapaInteractivoPage() {
         ];
     };
 
-    // Función para parsear fechas en formato "YYYY Mes" a Date
+    // Función para parsear fechas en formato "YYYY Mes", "YYYY-MM", "YYYY-MM-DD" a Date
     const parseMonthYear = (dateStr: string): Date | null => {
         if (!dateStr) return null;
 
@@ -347,15 +347,37 @@ export function MapaInteractivoPage() {
             'Septiembre': 8, 'Octubre': 9, 'Noviembre': 10, 'Diciembre': 11
         };
 
+        // Intentar parsear formato "YYYY Mes"
         const parts = dateStr.trim().split(' ');
-        if (parts.length !== 2) return null;
+        if (parts.length === 2) {
+            const year = parseInt(parts[0]);
+            const month = monthNames[parts[1]];
+            if (!isNaN(year) && month !== undefined) {
+                return new Date(year, month, 1);
+            }
+        }
 
-        const year = parseInt(parts[0]);
-        const month = monthNames[parts[1]];
+        // Intentar parsear formato "YYYY-MM" o "YYYY-MM-DD"
+        const dateParts = dateStr.split('-');
+        if (dateParts.length >= 2) {
+            const year = parseInt(dateParts[0]);
+            const month = parseInt(dateParts[1]) - 1;
+            if (!isNaN(year) && !isNaN(month) && month >= 0 && month <= 11) {
+                return new Date(year, month, 1);
+            }
+        }
 
-        if (isNaN(year) || month === undefined) return null;
+        // Intentar parsear como fecha ISO completa
+        try {
+            const date = new Date(dateStr);
+            if (!isNaN(date.getTime())) {
+                return date;
+            }
+        } catch (e) {
+            // Ignorar errores de parseo
+        }
 
-        return new Date(year, month, 1);
+        return null;
     };
 
     // Función para filtrar datos por rango temporal desde el último registro

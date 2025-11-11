@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import { Sparkles, Loader2, AlertCircle, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Sparkles, Loader2, AlertCircle, X, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import {
   aiExplanationService,
   type ChartExplanationRequest,
@@ -47,6 +50,16 @@ export function AIExplainButton({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [explanation, setExplanation] = useState<ChartExplanationResponse | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const positionClasses = {
     'top-right': 'absolute top-2 right-2',
@@ -57,6 +70,12 @@ export function AIExplainButton({
   };
 
   const handleExplain = async () => {
+    // Check if user is authenticated
+    if (!user) {
+      setOpen(true);
+      return;
+    }
+
     if (explanation && !loading) {
       // If already have explanation, just toggle the popover
       return;
@@ -97,14 +116,21 @@ export function AIExplainButton({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm hover:bg-white shadow-md"
+            className="h-8 px-3 bg-white/90 backdrop-blur-sm hover:bg-white shadow-md"
             onClick={handleExplain}
             title="Explicar con IA"
+            disabled={authLoading}
           >
             {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
+                <span className="text-sm font-medium">Analizando...</span>
+              </>
             ) : (
-              <Sparkles className="h-4 w-4 text-blue-600" />
+              <>
+                <Sparkles className="h-4 w-4 text-blue-600 mr-2" />
+                <span className="text-sm font-medium">Explícamelo</span>
+              </>
             )}
           </Button>
         </PopoverTrigger>
@@ -191,7 +217,40 @@ export function AIExplainButton({
               </div>
             )}
 
-            {!loading && !explanation && (
+            {!loading && !explanation && !user && (
+              <Alert className="border-blue-200 bg-blue-50">
+                <LogIn className="h-4 w-4 text-blue-600" />
+                <AlertDescription>
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-700">
+                      <strong>Funcionalidad exclusiva para usuarios registrados</strong>
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Inicia sesión para acceder a las explicaciones con inteligencia artificial de tus gráficos.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => window.location.href = '/login'}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <LogIn className="h-4 w-4 mr-1" />
+                        Iniciar Sesión
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.location.href = '/register'}
+                      >
+                        Registrarse
+                      </Button>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {!loading && !explanation && user && (
               <div className="text-center py-4">
                 <p className="text-sm text-gray-600">
                   Haz clic en el botón para obtener una explicación con IA

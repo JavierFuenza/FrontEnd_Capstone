@@ -350,9 +350,9 @@ export function RecursosHidricosPage() {
             <div className="flex items-center gap-2 text-white">
               <Droplets className="w-5 h-5 sm:w-6 sm:h-6" />
               <div>
-                <h2 className="text-base sm:text-lg font-bold">Recursos Hídricos</h2>
+                <h2 className="text-base sm:text-lg font-bold">Filtros</h2>
                 <p className="text-[10px] sm:text-xs text-emerald-100 hidden sm:block">
-                  Sistema de gestión de recursos acuáticos
+                  Monitoreo de recursos hídricos
                 </p>
               </div>
             </div>
@@ -371,7 +371,7 @@ export function RecursosHidricosPage() {
             <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               type="text"
-              placeholder="Buscar entidades..."
+              placeholder="Buscar estaciones..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-9 h-9 sm:h-10 text-sm"
@@ -415,7 +415,7 @@ export function RecursosHidricosPage() {
 
         {/* Entity Types List - Grouped */}
         <div className="flex-1 overflow-y-auto p-3">
-          <h3 className="text-xs font-semibold text-gray-700 mb-2">Tipos de Entidad</h3>
+          <h3 className="text-xs font-semibold text-gray-700 mb-2">Tipos de Estación</h3>
           <div className="space-y-2">
             {entityGroups.map((group) => {
               const isExpanded = expandedGroups[group.id];
@@ -487,7 +487,7 @@ export function RecursosHidricosPage() {
         <div className="p-3 border-t border-gray-200 bg-gray-50">
           <div className="text-center">
             <p className="text-xl font-bold text-emerald-600">{entities.length}</p>
-            <p className="text-[10px] text-gray-600">Total de Entidades</p>
+            <p className="text-[10px] text-gray-600">Total de Estaciones</p>
           </div>
         </div>
       </div>
@@ -513,10 +513,10 @@ export function RecursosHidricosPage() {
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 truncate">
                 {selectedEntityType
                   ? entityTypes.find(t => t.value === selectedEntityType)?.label
-                  : 'Todas las Entidades'}
+                  : 'Todas las Estaciones'}
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
-                {loading ? 'Cargando...' : `${filteredEntities.length} entidad(es) encontrada(s)`}
+                {loading ? 'Cargando...' : `${filteredEntities.length} estación(es) encontrada(s)`}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -577,12 +577,12 @@ export function RecursosHidricosPage() {
               <div className="text-center max-w-md">
                 <Droplets className="w-14 h-14 text-gray-300 mx-auto mb-3" />
                 <h3 className="text-base font-semibold text-gray-900 mb-1.5">
-                  No se encontraron entidades
+                  No se encontraron estaciones
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
                   {searchQuery || selectedEntityType
                     ? 'Intenta ajustar los filtros de búsqueda'
-                    : 'No hay entidades registradas en el sistema'}
+                    : 'No hay estaciones registradas en el sistema'}
                 </p>
                 {(searchQuery || selectedEntityType) && (
                   <Button onClick={clearFilters} variant="outline" className="h-7 text-xs">
@@ -603,7 +603,7 @@ export function RecursosHidricosPage() {
                 return (
                   <Card
                     key={entity.id}
-                    className="hover:shadow-lg transition-all cursor-pointer border-l-[3px] border-l-emerald-500"
+                    className="hover:shadow-xl hover:scale-[1.02] hover:border-emerald-600 transition-all cursor-pointer border-l-[3px] border-l-emerald-500 hover:bg-emerald-50"
                     onClick={() => setSelectedEntity(entity)}
                   >
                     <CardHeader className="pb-2 px-3 pt-3">

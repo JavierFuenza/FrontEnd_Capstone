@@ -18,7 +18,7 @@ export function ApiDocsPage() {
       <div className="mb-12 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">API de Datos Ambientales</h1>
         <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-          Accede a datos ambientales en tiempo real de Chile. Obtén información sobre calidad del aire, recursos
+          Accede a datos ambientales de Chile. Obtén información sobre calidad del aire, recursos
           hídricos y condiciones climáticas de todas las regiones del país.
         </p>
       </div>

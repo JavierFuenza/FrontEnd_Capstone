@@ -13,7 +13,6 @@ export function Footer() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold">Observatorio Ambiental</h3>
-                <p className="text-sm text-gray-400">Datos ambientales en tiempo real</p>
               </div>
             </div>
             <p className="text-gray-300 max-w-md">
@@ -49,11 +48,19 @@ export function Footer() {
             <ul className="space-y-2">
               <li className="flex items-center gap-2 text-gray-300">
                 <Mail className="w-4 h-4" />
-                info@observatorio.com
+                ca.romeroc@duocuc.cl
+              </li>
+              <li className="flex items-center gap-2 text-gray-300">
+                <Mail className="w-4 h-4" />
+                t.saavedra@duocuc.cl
+              </li>
+              <li className="flex items-center gap-2 text-gray-300">
+                <Mail className="w-4 h-4" />
+                ja.fuenzalida@duocuc.cl
               </li>
               <li className="flex items-center gap-2 text-gray-300">
                 <Phone className="w-4 h-4" />
-                +56 9 1234 5678
+                +56 9 8886 8014
               </li>
               <li className="flex items-center gap-2 text-gray-300">
                 <MapPin className="w-4 h-4" />

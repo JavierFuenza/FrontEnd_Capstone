@@ -43,7 +43,6 @@ export function NavBar() {
             </div>
             <div className="hidden sm:block">
               <h1 className="text-sm sm:text-base font-bold text-gray-900 leading-tight">Observatorio Ambiental</h1>
-              <p className="text-[10px] text-gray-500 leading-tight">Datos en tiempo real</p>
             </div>
             <div className="block sm:hidden">
               <h1 className="text-xs font-bold text-gray-900">Observatorio</h1>

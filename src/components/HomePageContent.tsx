@@ -200,7 +200,7 @@ export function HomePageContent() {
                 <CardTitle className="text-xl">Mapa Interactivo</CardTitle>
               </div>
               <CardDescription className="text-base">
-                Explora datos ambientales por región en tiempo real.
+                Explora datos ambientales por región.
               </CardDescription>
             </CardHeader>
           </Card>

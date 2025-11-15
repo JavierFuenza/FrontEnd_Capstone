@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Plus, Trash2, Loader2, BookOpen, Info, TrendingUp, AlertCircle, Download, Calendar, Save, Eye, X, BarChart3 } from 'lucide-react';
@@ -22,14 +23,23 @@ const COLORS = EXTENDED_COLOR_PALETTE;
 
 interface LineConfig {
   id: string;
-  region: string;
-  estacion: string;
-  metrica: string;
-  submetrica: string;
   label: string;
   color: string;
   datos: any[];
   loading: boolean;
+  dataSource: 'aire' | 'agua';
+
+  // Campos de aire
+  region?: string;
+  estacion?: string;
+  metrica?: string;
+  submetrica?: string;
+
+  // Campos de agua
+  tipoEntidad?: string;
+  entidadAgua?: string;
+  metricaAgua?: string;
+  submetricaAgua?: string;
 }
 
 interface Region {
@@ -121,28 +131,54 @@ export function GraficosPageContent() {
     getFromLocalStorage('graficos_temporalView', 'mensual')
   );
 
+  // Estado para el tipo de fuente de datos
+  const [dataSource, setDataSource] = useState<'aire' | 'agua'>(() =>
+    getFromLocalStorage('graficos_dataSource', 'aire')
+  );
+
   // Estado para el formulario de agregar línea
   const [formData, setFormData] = useState(() =>
     getFromLocalStorage('graficos_formData', {
+      // Campos de aire
       region: "",
       estacion: "",
       estacionId: null as number | null,
       metrica: "",
-      submetrica: ""
+      submetrica: "",
+      // Campos de agua
+      tipoEntidad: "",
+      entidadAgua: "",
+      metricaAgua: "",
+      submetricaAgua: ""
     })
   );
 
-  // Estados para las opciones de los selects
+  // Estados para las opciones de los selects de AIRE
   const [regiones, setRegiones] = useState<Region[]>([]);
   const [estaciones, setEstaciones] = useState<Estacion[]>([]);
   const [metricas, setMetricas] = useState<string[]>([]);
   const [submetricas, setSubmetricas] = useState<string[]>([]);
 
-  // Estados de carga
+  // Estados para las opciones de los selects de AGUA
+  const [tiposEntidad, setTiposEntidad] = useState<string[]>([]);
+  const [entidadesAgua, setEntidadesAgua] = useState<any[]>([]);
+  const [metricasAgua, setMetricasAgua] = useState<string[]>([]);
+  const [submetricasAgua, setSubmetricasAgua] = useState<string[]>([]);
+
+  // Estado para búsqueda de entidades
+  const [searchEntidad, setSearchEntidad] = useState('');
+
+  // Estados de carga para AIRE
   const [loadingRegiones, setLoadingRegiones] = useState(false);
   const [loadingEstaciones, setLoadingEstaciones] = useState(false);
   const [loadingMetricas, setLoadingMetricas] = useState(false);
   const [loadingSubmetricas, setLoadingSubmetricas] = useState(false);
+
+  // Estados de carga para AGUA
+  const [loadingTiposEntidad, setLoadingTiposEntidad] = useState(false);
+  const [loadingEntidadesAgua, setLoadingEntidadesAgua] = useState(false);
+  const [loadingMetricasAgua, setLoadingMetricasAgua] = useState(false);
+  const [loadingSubmetricasAgua, setLoadingSubmetricasAgua] = useState(false);
 
   // Estado del modal de glosario
   const [showGlosario, setShowGlosario] = useState(false);
@@ -294,6 +330,99 @@ export function GraficosPageContent() {
     saveToLocalStorage('graficos_formData', formData);
   }, [formData]);
 
+  useEffect(() => {
+    saveToLocalStorage('graficos_dataSource', dataSource);
+  }, [dataSource]);
+
+  // === FLUJO EN CASCADA PARA DATOS DE AGUA ===
+
+  // 1️⃣ Cargar tipos de entidad cuando se selecciona "agua"
+  useEffect(() => {
+    if (dataSource === 'agua') {
+      setLoadingTiposEntidad(true);
+      fetch(`${API_BASE_URL}/entidades-agua/tipos`)
+        .then(res => res.json())
+        .then(data => {
+          setTiposEntidad(data);
+          setLoadingTiposEntidad(false);
+        })
+        .catch(err => {
+          console.error("Error cargando tipos de entidad:", err);
+          setLoadingTiposEntidad(false);
+        });
+    }
+  }, [dataSource]);
+
+  // 2️⃣ Cargar entidades cuando se selecciona tipo
+  useEffect(() => {
+    if (dataSource === 'agua' && formData.tipoEntidad) {
+      setLoadingEntidadesAgua(true);
+      fetch(`${API_BASE_URL}/entidades-agua/tipo/${encodeURIComponent(formData.tipoEntidad)}`)
+        .then(res => res.json())
+        .then(data => {
+          setEntidadesAgua(data);
+          setLoadingEntidadesAgua(false);
+        })
+        .catch(err => {
+          console.error("Error cargando entidades:", err);
+          setLoadingEntidadesAgua(false);
+        });
+
+      // Reset campos dependientes
+      setFormData(prev => ({ ...prev, entidadAgua: '', metricaAgua: '', submetricaAgua: '' }));
+    }
+  }, [formData.tipoEntidad, dataSource]);
+
+  // 3️⃣ Cargar métricas cuando se selecciona entidad
+  useEffect(() => {
+    if (dataSource === 'agua' && formData.entidadAgua) {
+      setLoadingMetricasAgua(true);
+      fetch(`${API_BASE_URL}/entidades-agua/metricas/${encodeURIComponent(formData.entidadAgua)}`)
+        .then(res => res.json())
+        .then(data => {
+          setMetricasAgua(data);
+          setLoadingMetricasAgua(false);
+
+          // Si solo hay 1 métrica, auto-seleccionarla
+          if (data.length === 1) {
+            setFormData(prev => ({ ...prev, metricaAgua: data[0] }));
+          }
+        })
+        .catch(err => {
+          console.error("Error cargando métricas de agua:", err);
+          setLoadingMetricasAgua(false);
+        });
+
+      // Reset campos dependientes
+      setFormData(prev => ({ ...prev, metricaAgua: '', submetricaAgua: '' }));
+    }
+  }, [formData.entidadAgua, dataSource]);
+
+  // 4️⃣ Cargar submétricas cuando se selecciona métrica
+  useEffect(() => {
+    if (dataSource === 'agua' && formData.metricaAgua && formData.entidadAgua) {
+      setLoadingSubmetricasAgua(true);
+      fetch(`${API_BASE_URL}/entidades-agua/submetricas/${encodeURIComponent(formData.metricaAgua)}/${encodeURIComponent(formData.entidadAgua)}`)
+        .then(res => res.json())
+        .then(data => {
+          setSubmetricasAgua(data.submetricas || []);
+          setLoadingSubmetricasAgua(false);
+
+          // Si solo hay 1 submétrica, auto-seleccionarla
+          if (data.submetricas && data.submetricas.length === 1) {
+            setFormData(prev => ({ ...prev, submetricaAgua: data.submetricas[0] }));
+          }
+        })
+        .catch(err => {
+          console.error("Error cargando submétricas de agua:", err);
+          setLoadingSubmetricasAgua(false);
+        });
+
+      // Reset campo dependiente
+      setFormData(prev => ({ ...prev, submetricaAgua: '' }));
+    }
+  }, [formData.metricaAgua, dataSource]);
+
   // 🔥 Los gráficos ya NO se guardan en localStorage, ahora se usan funciones de Firestore
   // Persist saved charts
   // useEffect(() => {
@@ -321,13 +450,28 @@ export function GraficosPageContent() {
         l.id === line.id ? { ...l, loading: true } : l
       ));
 
-      const response = await fetch(
-        `${API_BASE_URL}/metricas/${encodeURIComponent(line.metrica)}/${encodeURIComponent(line.estacion)}?submetrica=${encodeURIComponent(line.submetrica)}`
-      );
+      let data;
+      if (line.dataSource === 'agua') {
+        // Recargar datos de agua
+        const response = await fetch(
+          `${API_BASE_URL}/entidades-agua/datos/${encodeURIComponent(line.entidadAgua!)}/${encodeURIComponent(line.metricaAgua!)}`
+        );
 
-      if (!response.ok) throw new Error('Error al cargar datos');
+        if (!response.ok) throw new Error('Error al cargar datos');
 
-      const data = await response.json();
+        const rawData = await response.json();
+        data = processAguaData(rawData, line.metricaAgua!, line.submetricaAgua!);
+      } else {
+        // Recargar datos de aire
+        const response = await fetch(
+          `${API_BASE_URL}/estaciones/datos-submetrica?submetrica=${encodeURIComponent(line.submetrica!)}&nombre=${encodeURIComponent(line.estacion!)}`
+        );
+
+        if (!response.ok) throw new Error('Error al cargar datos');
+
+        const result = await response.json();
+        data = result.datos || [];
+      }
 
       // Actualizar con los datos
       setLines(prev => prev.map(l =>
@@ -342,57 +486,161 @@ export function GraficosPageContent() {
     }
   };
 
+  // Función para procesar datos de agua según el tipo
+  const processAguaData = (data: any[], tipo: string, submetrica: string) => {
+    // Para tipos con múltiples columnas (Oceanográfica, Cuenca)
+    if (tipo === 'Estación Oceanográfica') {
+      return data.map(item => ({
+        periodo: item.mes,
+        valor: submetrica === 'Temp Superficial Del Mar'
+          ? item.temp_superficial_del_mar
+          : item.nivel_medio_del_mar
+      }));
+    } else if (tipo === 'Cuenca Hidrográfica') {
+      const keyMap: Record<string, string> = {
+        'Número de glaciares': 'num_glaciares_por_cuenca',
+        'Superficie de glaciares (km²)': 'superficie_de_glaciares_por_cuenca',
+        'Volumen de hielo glaciar estimado (km³)': 'volumen_de_hielo_glaciar_estimado_por_cuenca',
+        'Volumen de agua de glaciares estimada (km³)': 'volumen_de_agua_de_glaciares_estimada_por_cuenca'
+      };
+      return data.map(item => ({
+        periodo: item.anio?.toString() || item.mes, // Usar año como eje X
+        valor: item[keyMap[submetrica]]
+      }));
+    } else if (tipo === 'Estación Costera - Metales Disueltos' || tipo === 'Estación Costera - Metales Sedimentos') {
+      // Filtrar por parámetro específico
+      return data
+        .filter(item => item.parametros_poal === submetrica)
+        .map(item => ({
+          periodo: item.dia,
+          valor: item.value
+        }));
+    } else {
+      // Tipos con valor único
+      return data.map(item => ({
+        periodo: item.mes || item.dia || item.anio?.toString(),
+        valor: item.value
+      }));
+    }
+  };
+
   // Función para agregar una nueva línea al gráfico
   const agregarLinea = async () => {
-    if (!formData.region || !formData.estacion || !formData.metrica || !formData.submetrica) {
-      alert("Por favor completa todos los campos");
-      return;
-    }
-
-    const lineId = `${Date.now()}-${Math.random()}`;
-    const colorIndex = lines.length % COLORS.length;
-
-    const regionNombre = regiones.find(r => r.numero_region.toString() === formData.region)?.nombre_region || formData.region;
-    const label = `${formData.estacion} - ${formData.submetrica}`;
-
-    // Crear nueva línea con estado de carga
-    const newLine: LineConfig = {
-      id: lineId,
-      region: regionNombre,
-      estacion: formData.estacion,
-      metrica: formData.metrica,
-      submetrica: formData.submetrica,
-      label,
-      color: COLORS[colorIndex],
-      datos: [],
-      loading: true
-    };
-
-    setLines(prev => [...prev, newLine]);
-
-    // Cargar datos
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/estaciones/datos-submetrica?submetrica=${encodeURIComponent(formData.submetrica)}&nombre=${encodeURIComponent(formData.estacion)}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Error al cargar datos');
+    if (dataSource === 'aire') {
+      // Validación para datos de aire
+      if (!formData.region || !formData.estacion || !formData.metrica || !formData.submetrica) {
+        alert("Por favor completa todos los campos");
+        return;
       }
 
-      const data = await response.json();
+      const lineId = `${Date.now()}-${Math.random()}`;
+      const colorIndex = lines.length % COLORS.length;
 
-      // Actualizar la línea con los datos
-      setLines(prev => prev.map(line =>
-        line.id === lineId
-          ? { ...line, datos: data.datos || [], loading: false }
-          : line
-      ));
-    } catch (err) {
-      console.error("Error cargando datos:", err);
-      // Remover la línea si falla
-      setLines(prev => prev.filter(line => line.id !== lineId));
-      alert("Error al cargar los datos. Por favor intenta nuevamente.");
+      const regionNombre = regiones.find(r => r.numero_region.toString() === formData.region)?.nombre_region || formData.region;
+      const label = `${formData.estacion} - ${formData.submetrica}`;
+
+      // Crear nueva línea con estado de carga
+      const newLine: LineConfig = {
+        id: lineId,
+        region: regionNombre,
+        estacion: formData.estacion,
+        metrica: formData.metrica,
+        submetrica: formData.submetrica,
+        label,
+        color: COLORS[colorIndex],
+        datos: [],
+        loading: true,
+        dataSource: 'aire'
+      };
+
+      setLines(prev => [...prev, newLine]);
+
+      // Cargar datos
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/estaciones/datos-submetrica?submetrica=${encodeURIComponent(formData.submetrica)}&nombre=${encodeURIComponent(formData.estacion)}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Error al cargar datos');
+        }
+
+        const data = await response.json();
+
+        // Actualizar la línea con los datos
+        setLines(prev => prev.map(line =>
+          line.id === lineId
+            ? { ...line, datos: data.datos || [], loading: false }
+            : line
+        ));
+      } catch (err) {
+        console.error("Error cargando datos:", err);
+        // Remover la línea si falla
+        setLines(prev => prev.filter(line => line.id !== lineId));
+        alert("Error al cargar los datos. Por favor intenta nuevamente.");
+      }
+    } else {
+      // Validación para datos de agua
+      const { tipoEntidad, entidadAgua, metricaAgua, submetricaAgua } = formData;
+
+      if (!tipoEntidad || !entidadAgua || !metricaAgua) {
+        alert('Por favor completa todos los campos requeridos');
+        return;
+      }
+
+      // Si el tipo requiere submétrica y no está seleccionada
+      if (submetricasAgua.length > 1 && !submetricaAgua) {
+        alert('Por favor selecciona una submétrica');
+        return;
+      }
+
+      const lineId = `${Date.now()}-${Math.random()}`;
+      const colorIndex = lines.length % COLORS.length;
+      const submetricaFinal = submetricaAgua || (submetricasAgua.length === 1 ? submetricasAgua[0] : metricaAgua);
+      const label = submetricaAgua
+        ? `${entidadAgua} - ${submetricaAgua}`
+        : `${entidadAgua} - ${metricaAgua}`;
+
+      const newLine: LineConfig = {
+        id: lineId,
+        tipoEntidad,
+        entidadAgua,
+        metricaAgua,
+        submetricaAgua: submetricaFinal,
+        label,
+        color: COLORS[colorIndex],
+        datos: [],
+        loading: true,
+        dataSource: 'agua'
+      };
+
+      setLines(prev => [...prev, newLine]);
+
+      // Fetch datos
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/entidades-agua/datos/${encodeURIComponent(entidadAgua)}/${encodeURIComponent(metricaAgua)}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Error al cargar datos');
+        }
+
+        const data = await response.json();
+
+        // Procesar datos según estructura
+        const processedData = processAguaData(data, metricaAgua, submetricaFinal);
+
+        setLines(prev => prev.map(line =>
+          line.id === lineId
+            ? { ...line, datos: processedData, loading: false }
+            : line
+        ));
+      } catch (error) {
+        console.error('Error cargando datos de agua:', error);
+        setLines(prev => prev.filter(line => line.id !== lineId));
+        alert('Error al cargar los datos de agua');
+      }
     }
   };
 
@@ -408,11 +656,19 @@ export function GraficosPageContent() {
       estacion: "",
       estacionId: null,
       metrica: "",
-      submetrica: ""
+      submetrica: "",
+      tipoEntidad: "",
+      entidadAgua: "",
+      metricaAgua: "",
+      submetricaAgua: ""
     });
     setEstaciones([]);
     setMetricas([]);
     setSubmetricas([]);
+    setEntidadesAgua([]);
+    setMetricasAgua([]);
+    setSubmetricasAgua([]);
+    setSearchEntidad('');
   };
 
   // Función para guardar el gráfico actual
@@ -754,142 +1010,324 @@ export function GraficosPageContent() {
                 <CardTitle>Configuración de Datos</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* 1️⃣ Selector de Región */}
+                {/* Selector Aire/Agua */}
                 <div>
-                  <label className="font-semibold text-sm mb-2 block">1. Región</label>
-                  {loadingRegiones ? (
-                    <div className="flex items-center justify-center p-4">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    </div>
-                  ) : (
-                    <Select
-                      value={formData.region}
-                      onValueChange={(value) => {
-                        setFormData({
-                          region: value,
-                          estacion: "",
-                          estacionId: null,
-                          metrica: "",
-                          submetrica: ""
-                        });
+                  <label className="font-semibold text-sm mb-2 block">Fuente de Datos</label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={dataSource === 'aire' ? 'default' : 'outline'}
+                      onClick={() => {
+                        setDataSource('aire');
+                        resetForm();
                       }}
+                      className={`flex-1 ${dataSource === 'aire' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona región..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {regiones.map((region) => (
-                          <SelectItem key={region.numero_region} value={region.numero_region.toString()}>
-                            {region.nombre_region}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+                      Datos de Aire
+                    </Button>
+                    <Button
+                      variant={dataSource === 'agua' ? 'default' : 'outline'}
+                      onClick={() => {
+                        setDataSource('agua');
+                        resetForm();
+                      }}
+                      className={`flex-1 ${dataSource === 'agua' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                    >
+                      Datos de Agua
+                    </Button>
+                  </div>
                 </div>
 
-                {/* 2️⃣ Selector de Estación */}
-                {formData.region && (
-                  <div>
-                    <label className="font-semibold text-sm mb-2 block">2. Estación</label>
-                    {loadingEstaciones ? (
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                {/* FORMULARIO DE AIRE */}
+                {dataSource === 'aire' ? (
+                  <>
+                    {/* 1️⃣ Selector de Región */}
+                    <div>
+                      <label className="font-semibold text-sm mb-2 block">1. Región</label>
+                      {loadingRegiones ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        </div>
+                      ) : (
+                        <Select
+                          value={formData.region}
+                          onValueChange={(value) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              region: value,
+                              estacion: "",
+                              estacionId: null,
+                              metrica: "",
+                              submetrica: ""
+                            }));
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona región..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {regiones.map((region) => (
+                              <SelectItem key={region.numero_region} value={region.numero_region.toString()}>
+                                {region.nombre_region}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+
+                    {/* 2️⃣ Selector de Estación */}
+                    {formData.region && (
+                      <div>
+                        <label className="font-semibold text-sm mb-2 block">2. Estación</label>
+                        {loadingEstaciones ? (
+                          <div className="flex items-center justify-center p-4">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          </div>
+                        ) : (
+                          <Select
+                            value={formData.estacion}
+                            onValueChange={(value) => {
+                              const estacion = estaciones.find(e => e.nombre === value);
+                              setFormData(prev => ({
+                                ...prev,
+                                estacion: value,
+                                estacionId: estacion?.id || null,
+                                metrica: "",
+                                submetrica: ""
+                              }));
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona estación..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {estaciones.map((estacion) => (
+                                <SelectItem key={estacion.id} value={estacion.nombre}>
+                                  {estacion.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
-                    ) : (
-                      <Select
-                        value={formData.estacion}
-                        onValueChange={(value) => {
-                          const estacion = estaciones.find(e => e.nombre === value);
-                          setFormData(prev => ({
+                    )}
+
+                    {/* 3️⃣ Selector de Métrica */}
+                    {formData.estacion && (
+                      <div>
+                        <label className="font-semibold text-sm mb-2 block">3. Métrica</label>
+                        {loadingMetricas ? (
+                          <div className="flex items-center justify-center p-4">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          </div>
+                        ) : (
+                          <Select
+                            value={formData.metrica}
+                            onValueChange={(value) => setFormData(prev => ({
+                              ...prev,
+                              metrica: value,
+                              submetrica: ""
+                            }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona métrica..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {metricas.map((metrica) => (
+                                <SelectItem key={metrica} value={metrica}>
+                                  {metrica}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 4️⃣ Selector de Submétrica */}
+                    {formData.metrica && (
+                      <div>
+                        <label className="font-semibold text-sm mb-2 block">4. Submétrica (Campo a Graficar)</label>
+                        {loadingSubmetricas ? (
+                          <div className="flex items-center justify-center p-4">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          </div>
+                        ) : (
+                          <Select
+                            value={formData.submetrica}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, submetrica: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona campo..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {submetricas.map((submetrica) => (
+                                <SelectItem key={submetrica} value={submetrica}>
+                                  {submetrica}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* FORMULARIO DE AGUA */
+                  <>
+                    {/* 1️⃣ Selector de Tipo de Entidad */}
+                    <div>
+                      <label className="font-semibold text-sm mb-2 block">1. Tipo de Entidad</label>
+                      {loadingTiposEntidad ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        </div>
+                      ) : (
+                        <Select
+                          value={formData.tipoEntidad}
+                          onValueChange={(value) => setFormData(prev => ({
                             ...prev,
-                            estacion: value,
-                            estacionId: estacion?.id || null,
-                            metrica: "",
-                            submetrica: ""
-                          }));
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona estación..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {estaciones.map((estacion) => (
-                            <SelectItem key={estacion.id} value={estacion.nombre}>
-                              {estacion.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                )}
+                            tipoEntidad: value
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona tipo..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tiposEntidad.map((tipo) => (
+                              <SelectItem key={tipo} value={tipo}>
+                                {tipo}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
 
-                {/* 3️⃣ Selector de Métrica */}
-                {formData.estacion && (
-                  <div>
-                    <label className="font-semibold text-sm mb-2 block">3. Métrica</label>
-                    {loadingMetricas ? (
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                    {/* 2️⃣ Selector de Estación/Entidad con búsqueda integrada */}
+                    {formData.tipoEntidad && (
+                      <div>
+                        <label className="font-semibold text-sm mb-2 block">2. Estación/Entidad</label>
+                        {loadingEntidadesAgua ? (
+                          <div className="flex items-center justify-center p-4">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          </div>
+                        ) : (
+                          <Select
+                            value={formData.entidadAgua}
+                            onValueChange={(value) => {
+                              setFormData(prev => ({ ...prev, entidadAgua: value }));
+                              setSearchEntidad(''); // Limpiar búsqueda al seleccionar
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona estación..." />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-80">
+                              {/* Input de búsqueda dentro del dropdown */}
+                              <div className="sticky top-0 bg-white border-b p-2 z-10">
+                                <Input
+                                  placeholder="Buscar estación..."
+                                  value={searchEntidad}
+                                  onChange={(e) => setSearchEntidad(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()} // Evitar que se cierre el dropdown
+                                  onKeyDown={(e) => e.stopPropagation()} // Evitar que las teclas cierren el dropdown
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              {/* Lista filtrada de entidades */}
+                              <div className="max-h-60 overflow-y-auto">
+                                {entidadesAgua
+                                  .filter(e => e.nombre.toLowerCase().includes(searchEntidad.toLowerCase()))
+                                  .length > 0 ? (
+                                  entidadesAgua
+                                    .filter(e => e.nombre.toLowerCase().includes(searchEntidad.toLowerCase()))
+                                    .map((entidad) => (
+                                      <SelectItem key={entidad.id} value={entidad.nombre}>
+                                        {entidad.nombre}
+                                      </SelectItem>
+                                    ))
+                                ) : (
+                                  <div className="p-4 text-center text-sm text-gray-500">
+                                    No se encontraron estaciones
+                                  </div>
+                                )}
+                              </div>
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
-                    ) : (
-                      <Select
-                        value={formData.metrica}
-                        onValueChange={(value) => setFormData(prev => ({
-                          ...prev,
-                          metrica: value,
-                          submetrica: ""
-                        }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona métrica..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {metricas.map((metrica) => (
-                            <SelectItem key={metrica} value={metrica}>
-                              {metrica}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     )}
-                  </div>
-                )}
 
-                {/* 4️⃣ Selector de Submétrica */}
-                {formData.metrica && (
-                  <div>
-                    <label className="font-semibold text-sm mb-2 block">4. Submétrica (Campo a Graficar)</label>
-                    {loadingSubmetricas ? (
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                    {/* 3️⃣ Selector de Métrica (solo si hay más de 1) */}
+                    {metricasAgua.length > 1 && formData.entidadAgua && (
+                      <div>
+                        <label className="font-semibold text-sm mb-2 block">3. Métrica</label>
+                        {loadingMetricasAgua ? (
+                          <div className="flex items-center justify-center p-4">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          </div>
+                        ) : (
+                          <Select
+                            value={formData.metricaAgua}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, metricaAgua: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona métrica..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {metricasAgua.map((metrica) => (
+                                <SelectItem key={metrica} value={metrica}>
+                                  {metrica}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
-                    ) : (
-                      <Select
-                        value={formData.submetrica}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, submetrica: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona campo..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {submetricas.map((submetrica) => (
-                            <SelectItem key={submetrica} value={submetrica}>
-                              {submetrica}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     )}
-                  </div>
+
+                    {/* 4️⃣ Selector de Submétrica (solo si hay más de 1) */}
+                    {submetricasAgua.length > 1 && formData.metricaAgua && (
+                      <div>
+                        <label className="font-semibold text-sm mb-2 block">
+                          {metricasAgua.length > 1 ? '4' : '3'}. Submétrica (Campo a Graficar)
+                        </label>
+                        {loadingSubmetricasAgua ? (
+                          <div className="flex items-center justify-center p-4">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          </div>
+                        ) : (
+                          <Select
+                            value={formData.submetricaAgua}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, submetricaAgua: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona campo..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {submetricasAgua.map((submetrica) => (
+                                <SelectItem key={submetrica} value={submetrica}>
+                                  {submetrica}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Botón para agregar */}
                 <Button
                   onClick={agregarLinea}
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
-                  disabled={!formData.submetrica}
+                  disabled={
+                    dataSource === 'aire'
+                      ? !formData.submetrica
+                      : !(formData.entidadAgua && (metricasAgua.length === 1 || formData.metricaAgua) && (submetricasAgua.length <= 1 || formData.submetricaAgua))
+                  }
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Agregar al Gráfico

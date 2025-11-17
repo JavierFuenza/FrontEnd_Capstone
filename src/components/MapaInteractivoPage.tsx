@@ -11,13 +11,21 @@ import { GlosarioModal } from './GlosarioModal';
 import { AIExplainButton } from './AIExplainButton';
 import html2canvas from 'html2canvas';
 
+interface MetricasDetalladas {
+    temperatura: boolean;
+    humedad_radiacion_uv: boolean;
+    contaminantes: string[]; // ["mp25", "mp10", "o3", "so2", "no2", "co"]
+}
+
 interface Estacion {
-    id: number;
     nombre: string;
     latitud: number;
     longitud: number;
+    numero_region?: number;
+    nombre_region?: string;
     descripcion: string;
-    created_at: string;
+    metricas_disponibles: string[];
+    metricas_detalladas: MetricasDetalladas;
 }
 
 type MetricType = 'temperatura' | 'mp25' | 'mp10' | 'o3' | 'so2' | 'no2' | 'co' | 'humedad_radiacion_uv';
@@ -45,6 +53,38 @@ export function MapaInteractivoPage() {
     const [loadingMetric, setLoadingMetric] = useState(false);
     const [availableMetrics, setAvailableMetrics] = useState<MetricType[]>([]);
 
+    // Filtros de métricas - estructura mejorada con categorías expandibles
+    // Por defecto todas las métricas están habilitadas para mostrar todas las estaciones
+    const [metricFilters, setMetricFilters] = useState({
+        temperatura: {
+            enabled: true,
+            submetricas: {
+                all: true
+            }
+        },
+        contaminantes: {
+            enabled: true,
+            submetricas: {
+                mp25: true,
+                mp10: true,
+                o3: true,
+                so2: true,
+                no2: true,
+                co: true
+            }
+        },
+        humedad_radiacion: {
+            enabled: true,
+            submetricas: {
+                all: true
+            }
+        }
+    });
+
+    // Estado para controlar qué categorías están expandidas
+    const [expandedCategories, setExpandedCategories] = useState({
+        contaminantes: false
+    });
 
     // Sidebar states
     const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
@@ -94,13 +134,13 @@ export function MapaInteractivoPage() {
         }
     }, []);
 
-    // Fetch estaciones desde el backend
+    // Fetch estaciones desde el backend con métricas disponibles
     useEffect(() => {
         const fetchEstaciones = async () => {
             try {
                 setLoading(true);
                 const API_BASE = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8000/';
-                const url = `${API_BASE}api/private/estaciones/`;
+                const url = `${API_BASE}api/private/estaciones/con-metricas`;
 
                 const response = await fetch(url);
                 if (!response.ok) {
@@ -120,14 +160,68 @@ export function MapaInteractivoPage() {
         fetchEstaciones();
     }, []);
 
-    // Filtrar estaciones por búsqueda
+    // Función helper para verificar si una estación tiene métricas específicas usando el backend
+    const hasMetricType = (estacion: Estacion, metricType: string): boolean => {
+        if (!estacion.metricas_disponibles) return false;
+
+        switch (metricType) {
+            case 'temperatura':
+                return estacion.metricas_disponibles.includes('Temperatura');
+            case 'contaminantes':
+                return estacion.metricas_disponibles.includes('Contaminantes');
+            case 'humedad_radiacion':
+                return estacion.metricas_disponibles.includes('Humedad Radiación y UV');
+            default:
+                return false;
+        }
+    };
+
+    // Filtrar estaciones por búsqueda y métricas
     useEffect(() => {
-        const filtered = estaciones.filter(estacion =>
+        let filtered = estaciones.filter(estacion =>
             estacion.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
             estacion.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
         );
+
+        // Verificar si hay filtros activos
+        const hasActiveFilters =
+            metricFilters.temperatura.enabled ||
+            metricFilters.contaminantes.enabled ||
+            metricFilters.humedad_radiacion.enabled;
+
+        if (hasActiveFilters) {
+            filtered = filtered.filter(estacion => {
+                // Si temperatura está activado
+                if (metricFilters.temperatura.enabled && hasMetricType(estacion, 'temperatura')) {
+                    return true;
+                }
+
+                // Si humedad/radiación está activado
+                if (metricFilters.humedad_radiacion.enabled && hasMetricType(estacion, 'humedad_radiacion')) {
+                    return true;
+                }
+
+                // Si contaminantes está activado, verificar según submétricas seleccionadas
+                if (metricFilters.contaminantes.enabled && hasMetricType(estacion, 'contaminantes')) {
+                    // Verificar qué submétricas están seleccionadas
+                    const selectedSubmetricas = Object.entries(metricFilters.contaminantes.submetricas)
+                        .filter(([_, isSelected]) => isSelected)
+                        .map(([key]) => key);
+
+                    // Si todas están seleccionadas, incluir la estación
+                    if (selectedSubmetricas.length === 6) return true;
+
+                    // Verificar si la estación tiene alguna de las submétricas seleccionadas
+                    const contaminantesEstacion = estacion.metricas_detalladas?.contaminantes || [];
+                    return selectedSubmetricas.some(submetrica => contaminantesEstacion.includes(submetrica));
+                }
+
+                return false;
+            });
+        }
+
         setFilteredEstaciones(filtered);
-    }, [searchTerm, estaciones]);
+    }, [searchTerm, estaciones, metricFilters]);
 
     // Función para determinar métricas disponibles usando el endpoint /tabs
     const checkAvailableMetrics = async (estacion: Estacion) => {
@@ -1199,7 +1293,7 @@ export function MapaInteractivoPage() {
     };
 
     return (
-        <div className="relative h-screen overflow-hidden bg-gray-50 pt-[48px]">
+        <div className="relative h-[calc(100vh-64px)] overflow-hidden bg-gray-50 mt-16">
 
             {/* LEFT SIDEBAR - Buscar + Filtros */}
             <div
@@ -1232,6 +1326,202 @@ export function MapaInteractivoPage() {
                         className="w-full"
                     />
 
+                    {/* Filtros de métricas mejorados */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-gray-700">Filtrar por métrica:</p>
+                            {(!metricFilters.temperatura.enabled || !metricFilters.contaminantes.enabled || !metricFilters.humedad_radiacion.enabled ||
+                              !Object.values(metricFilters.contaminantes.submetricas).every(v => v)) && (
+                                <button
+                                    onClick={() => setMetricFilters({
+                                        temperatura: { enabled: true, submetricas: { all: true } },
+                                        contaminantes: { enabled: true, submetricas: { mp25: true, mp10: true, o3: true, so2: true, no2: true, co: true } },
+                                        humedad_radiacion: { enabled: true, submetricas: { all: true } }
+                                    })}
+                                    className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                                >
+                                    Seleccionar todo
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Temperatura */}
+                        <div className={`border-2 rounded-lg transition-all ${metricFilters.temperatura.enabled ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-white'}`}>
+                            <label className="flex items-center gap-3 p-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={metricFilters.temperatura.enabled}
+                                    onChange={(e) => setMetricFilters(prev => ({
+                                        ...prev,
+                                        temperatura: { ...prev.temperatura, enabled: e.target.checked }
+                                    }))}
+                                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                                />
+                                <div className="flex-1">
+                                    <div className="font-medium text-gray-900 text-sm">🌡️ Temperatura</div>
+                                    <div className="text-xs text-gray-500">Datos de temperatura ambiente</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        {/* Contaminantes con expansión */}
+                        <div className={`border-2 rounded-lg transition-all ${metricFilters.contaminantes.enabled ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'}`}>
+                            <div className="flex items-stretch">
+                                <label className="flex items-center gap-3 p-3 cursor-pointer flex-1">
+                                    <input
+                                        type="checkbox"
+                                        checked={metricFilters.contaminantes.enabled}
+                                        onChange={(e) => setMetricFilters(prev => ({
+                                            ...prev,
+                                            contaminantes: { ...prev.contaminantes, enabled: e.target.checked }
+                                        }))}
+                                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="font-medium text-gray-900 text-sm">💨 Contaminantes</div>
+                                        <div className="text-xs text-gray-500">Material particulado y gases</div>
+                                    </div>
+                                </label>
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setExpandedCategories(prev => ({
+                                            ...prev,
+                                            contaminantes: !prev.contaminantes
+                                        }));
+                                    }}
+                                    className="px-4 hover:bg-red-100 transition-colors flex items-center justify-center border-l border-gray-200"
+                                    title={expandedCategories.contaminantes ? "Ocultar detalles" : "Ver detalles"}
+                                >
+                                    <svg className={`w-6 h-6 text-gray-600 transition-transform ${expandedCategories.contaminantes ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Submétricas de contaminantes */}
+                            <div
+                                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                                    expandedCategories.contaminantes
+                                        ? 'max-h-96 opacity-100'
+                                        : 'max-h-0 opacity-0'
+                                }`}
+                            >
+                                <div className="px-3 pb-3 space-y-1.5 border-t border-gray-200 pt-2">
+                                    <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded hover:bg-white/50 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={metricFilters.contaminantes.submetricas.mp25}
+                                            onChange={(e) => setMetricFilters(prev => ({
+                                                ...prev,
+                                                contaminantes: {
+                                                    ...prev.contaminantes,
+                                                    submetricas: { ...prev.contaminantes.submetricas, mp25: e.target.checked }
+                                                }
+                                            }))}
+                                            className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                        />
+                                        <span className="text-xs text-gray-700">MP2.5 (Partículas finas)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded hover:bg-white/50 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={metricFilters.contaminantes.submetricas.mp10}
+                                            onChange={(e) => setMetricFilters(prev => ({
+                                                ...prev,
+                                                contaminantes: {
+                                                    ...prev.contaminantes,
+                                                    submetricas: { ...prev.contaminantes.submetricas, mp10: e.target.checked }
+                                                }
+                                            }))}
+                                            className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                        />
+                                        <span className="text-xs text-gray-700">MP10 (Partículas respirables)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded hover:bg-white/50 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={metricFilters.contaminantes.submetricas.o3}
+                                            onChange={(e) => setMetricFilters(prev => ({
+                                                ...prev,
+                                                contaminantes: {
+                                                    ...prev.contaminantes,
+                                                    submetricas: { ...prev.contaminantes.submetricas, o3: e.target.checked }
+                                                }
+                                            }))}
+                                            className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                        />
+                                        <span className="text-xs text-gray-700">O₃ (Ozono troposférico)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded hover:bg-white/50 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={metricFilters.contaminantes.submetricas.so2}
+                                            onChange={(e) => setMetricFilters(prev => ({
+                                                ...prev,
+                                                contaminantes: {
+                                                    ...prev.contaminantes,
+                                                    submetricas: { ...prev.contaminantes.submetricas, so2: e.target.checked }
+                                                }
+                                            }))}
+                                            className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                        />
+                                        <span className="text-xs text-gray-700">SO₂ (Dióxido de azufre)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded hover:bg-white/50 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={metricFilters.contaminantes.submetricas.no2}
+                                            onChange={(e) => setMetricFilters(prev => ({
+                                                ...prev,
+                                                contaminantes: {
+                                                    ...prev.contaminantes,
+                                                    submetricas: { ...prev.contaminantes.submetricas, no2: e.target.checked }
+                                                }
+                                            }))}
+                                            className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                        />
+                                        <span className="text-xs text-gray-700">NO₂ (Dióxido de nitrógeno)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded hover:bg-white/50 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={metricFilters.contaminantes.submetricas.co}
+                                            onChange={(e) => setMetricFilters(prev => ({
+                                                ...prev,
+                                                contaminantes: {
+                                                    ...prev.contaminantes,
+                                                    submetricas: { ...prev.contaminantes.submetricas, co: e.target.checked }
+                                                }
+                                            }))}
+                                            className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                        />
+                                        <span className="text-xs text-gray-700">CO (Monóxido de carbono)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Humedad y Radiación UV */}
+                        <div className={`border-2 rounded-lg transition-all ${metricFilters.humedad_radiacion.enabled ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+                            <label className="flex items-center gap-3 p-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={metricFilters.humedad_radiacion.enabled}
+                                    onChange={(e) => setMetricFilters(prev => ({
+                                        ...prev,
+                                        humedad_radiacion: { ...prev.humedad_radiacion, enabled: e.target.checked }
+                                    }))}
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <div className="flex-1">
+                                    <div className="font-medium text-gray-900 text-sm">💧 Humedad y Radiación UV</div>
+                                    <div className="text-xs text-gray-500">Humedad relativa y radiación solar</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
                     {/* Lista de estaciones */}
                     {loading ? (
                         <div className="text-center py-8 text-gray-500">
@@ -1253,15 +1543,15 @@ export function MapaInteractivoPage() {
                             ) : (
                                 filteredEstaciones.map((estacion) => (
                                     <div
-                                        key={estacion.id}
+                                        key={estacion.nombre}
                                         onClick={() => handleEstacionClick(estacion)}
                                         className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all
-                                            ${selectedEstacion?.id === estacion.id
+                                            ${selectedEstacion?.nombre === estacion.nombre
                                                 ? "bg-emerald-100 border-2 border-emerald-500"
                                                 : "hover:bg-gray-100 border border-transparent"
                                             }`}
                                     >
-                                        <MapPin className={`w-4 h-4 flex-shrink-0 ${selectedEstacion?.id === estacion.id ? 'text-emerald-600' : 'text-gray-400'}`} />
+                                        <MapPin className={`w-4 h-4 flex-shrink-0 ${selectedEstacion?.nombre === estacion.nombre ? 'text-emerald-600' : 'text-gray-400'}`} />
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-gray-900 truncate">
                                                 {estacion.nombre}
@@ -1280,7 +1570,7 @@ export function MapaInteractivoPage() {
 
             {/* RIGHT SIDEBAR - Panel de Datos */}
             <div
-                className={`absolute top-16 right-0 h-full bg-white shadow-xl z-[950] transition-transform duration-300 flex flex-col
+                className={`absolute top-0 right-0 h-full bg-white shadow-xl z-[950] transition-transform duration-300 flex flex-col
                     ${rightSidebarOpen ? 'translate-x-0' : 'translate-x-full'}
                     w-full sm:w-96 lg:w-[28rem]`}
             >
@@ -1370,7 +1660,7 @@ export function MapaInteractivoPage() {
 
             {/* BOTÓN FLOTANTE - Abrir filtros */}
             {!leftSidebarOpen && (
-                <div className="fixed top-[60px] left-4 z-[800] flex flex-col gap-2">
+                <div className="absolute top-4 left-4 z-[800] flex flex-col gap-2">
                     <button
                         className="shadow-2xl bg-white hover:bg-gray-100 text-gray-700 border-2 border-gray-300 rounded-full flex items-center gap-2 px-4 py-3 transition-all cursor-pointer"
                         onClick={() => setLeftSidebarOpen(true)}

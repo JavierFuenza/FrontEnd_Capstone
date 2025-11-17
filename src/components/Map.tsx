@@ -18,13 +18,21 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 const center: [number, number] = [-39.8142, -73.2459];
 
+interface MetricasDetalladas {
+  temperatura: boolean;
+  humedad_radiacion_uv: boolean;
+  contaminantes: string[];
+}
+
 interface Estacion {
-  id: number;
   nombre: string;
   latitud: number;
   longitud: number;
+  numero_region?: number;
+  nombre_region?: string;
   descripcion: string;
-  created_at: string;
+  metricas_disponibles?: string[];
+  metricas_detalladas?: MetricasDetalladas;
 }
 
 interface MapProps {
@@ -94,7 +102,7 @@ export function Map({ estaciones, selectedEstacion, onEstacionSelect, showZoomCo
 
         {estaciones.map((estacion, index) => (
           <Marker
-            key={`marker-${estacion.id || index}`}
+            key={`marker-${estacion.nombre || index}`}
             position={[estacion.latitud, estacion.longitud]}
           >
             <Popup>

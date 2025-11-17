@@ -1,17 +1,36 @@
 // src/components/NavBar.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button"; // <-- Importa el componente Button
-import { MapPin, BarChart3, Code, DollarSign, Leaf, Menu, X, User, LogOut, Droplets } from "lucide-react";
+import { MapPin, BarChart3, Code, DollarSign, Leaf, Menu, X, User, LogOut, Droplets, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function NavBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [pathname, setPathname] = useState("");
   const { user, logout, loading } = useAuth();
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setPathname(window.location.pathname);
   }, []);
+
+  // Cerrar el menu de usuario al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
 
   const handleLogout = async () => {
     try {
@@ -105,48 +124,68 @@ export function NavBar() {
           </button> */}
         </nav>
 
-        {/* Botones de Auth - Desktop */}
-        <div className="hidden xl:flex items-center gap-2 flex-shrink-0">
+        {/* Botones de Auth - Desktop con Dropdown */}
+        <div className="hidden xl:flex items-center gap-2 flex-shrink-0 min-w-[180px] justify-end">
           {loading ? (
-            <div className="w-20 h-8 bg-gray-100 animate-pulse rounded"></div>
+            <div className="w-40 h-9 bg-gray-100 animate-pulse rounded-lg"></div>
           ) : user ? (
-            <div className="flex items-center gap-2">
-              <a
-                href="/profile"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg shadow-sm hover:from-emerald-100 hover:to-emerald-150 hover:border-emerald-300 transition-all cursor-pointer"
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                onMouseEnter={() => setIsUserMenuOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg shadow-sm hover:from-emerald-100 hover:to-emerald-150 hover:border-emerald-300 transition-all cursor-pointer w-full"
               >
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   <User className="w-4 h-4 text-emerald-700" />
                   <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white"></div>
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col flex-1 min-w-0">
                   <span className="text-[10px] font-semibold text-emerald-700 leading-tight">
                     Conectado
                   </span>
-                  <span className="text-xs font-medium text-emerald-900 leading-tight">
+                  <span className="text-xs font-medium text-emerald-900 leading-tight truncate">
                     {user.displayName || user.email?.split('@')[0]}
                   </span>
                 </div>
-              </a>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="text-xs font-medium border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 h-7 px-2.5"
-              >
-                <LogOut className="w-3.5 h-3.5 mr-1" />
-                Cerrar Sesión
-              </Button>
+                <ChevronDown className={`w-4 h-4 text-emerald-700 transition-transform flex-shrink-0 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isUserMenuOpen && (
+                <div
+                  onMouseLeave={() => setIsUserMenuOpen(false)}
+                  className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-[10000] animate-in fade-in slide-in-from-top-2 duration-200"
+                >
+                  <a
+                    href="/profile"
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>Ver Perfil</span>
+                  </a>
+                  <div className="h-px bg-gray-200 my-1"></div>
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Cerrar Sesión</span>
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <>
               <a href="/login">
-                <Button variant="outline" size="sm" className="text-xs font-medium h-7 px-3">
+                <Button variant="outline" size="sm" className="text-xs font-medium h-8 px-3">
                   Iniciar Sesión
                 </Button>
               </a>
               <a href="/register">
-                <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-xs font-medium shadow-sm h-7 px-3">
+                <Button size="sm" className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-xs font-medium shadow-sm h-8 px-3">
                   Registrarse
                 </Button>
               </a>

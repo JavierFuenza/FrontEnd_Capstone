@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, X, BarChart3, Maximize2, Calendar, TrendingUp, Info, Loader2, Download, BookOpen } from "lucide-react";
+import { Search, MapPin, X, BarChart3, Maximize2, Calendar, TrendingUp, Info, Loader2, Download, BookOpen, SlidersHorizontal } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
 import { Map } from './Map';
 import { Badge } from "@/components/ui/badge";
@@ -34,37 +34,11 @@ interface MetricData {
 }
 
 export function MapaInteractivoPage() {
-    // Helper para cargar datos desde localStorage
-    const getFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
-        if (typeof window === 'undefined') return defaultValue;
-        try {
-            const item = window.localStorage.getItem(key);
-            return item ? JSON.parse(item) : defaultValue;
-        } catch (error) {
-            console.error(`Error loading ${key} from localStorage:`, error);
-            return defaultValue;
-        }
-    };
-
-    // Helper para guardar datos en localStorage
-    const saveToLocalStorage = <T,>(key: string, value: T) => {
-        if (typeof window === 'undefined') return;
-        try {
-            window.localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
-            console.error(`Error saving ${key} to localStorage:`, error);
-        }
-    };
-
     const [searchTerm, setSearchTerm] = useState("");
     const [estaciones, setEstaciones] = useState<Estacion[]>([]);
     const [filteredEstaciones, setFilteredEstaciones] = useState<Estacion[]>([]);
-    const [selectedEstacion, setSelectedEstacion] = useState<Estacion | null>(() =>
-        getFromLocalStorage('mapa_selectedEstacion', null)
-    );
-    const [selectedMetric, setSelectedMetric] = useState<MetricType>(() =>
-        getFromLocalStorage('mapa_selectedMetric', 'temperatura')
-    );
+    const [selectedEstacion, setSelectedEstacion] = useState<Estacion | null>(null);
+    const [selectedMetric, setSelectedMetric] = useState<MetricType>('temperatura');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [metricData, setMetricData] = useState<MetricData>({});
@@ -73,12 +47,8 @@ export function MapaInteractivoPage() {
 
 
     // Sidebar states
-    const [leftSidebarOpen, setLeftSidebarOpen] = useState(() =>
-        getFromLocalStorage('mapa_leftSidebarOpen', true)
-    );
-    const [rightSidebarOpen, setRightSidebarOpen] = useState(() =>
-        getFromLocalStorage('mapa_rightSidebarOpen', false)
-    );
+    const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+    const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
     // Modal state for chart expansion
     const [expandedChart, setExpandedChart] = useState<{
@@ -91,17 +61,13 @@ export function MapaInteractivoPage() {
     } | null>(null);
 
     // Temporal view states for each chart (keyed by chartKey)
-    const [chartViews, setChartViews] = useState<Record<string, 'mensual' | 'anual'>>(() =>
-        getFromLocalStorage('mapa_chartViews', {})
-    );
+    const [chartViews, setChartViews] = useState<Record<string, 'mensual' | 'anual'>>({});
 
     // Stats visibility states for each chart (keyed by chartKey)
     const [statsVisible, setStatsVisible] = useState<Record<string, boolean>>({});
 
     // Time range filter states for temperature charts (keyed by chartKey)
-    const [timeRangeFilters, setTimeRangeFilters] = useState<Record<string, '1year' | '2years' | '5years' | 'all'>>(() =>
-        getFromLocalStorage('mapa_timeRangeFilters', {})
-    );
+    const [timeRangeFilters, setTimeRangeFilters] = useState<Record<string, '1year' | '2years' | '5years' | 'all'>>({});
 
     // Force modal re-render counter
     const [modalRenderKey, setModalRenderKey] = useState(0);
@@ -111,6 +77,22 @@ export function MapaInteractivoPage() {
 
     // Ref para captura de pantalla
     const contentRef = useRef<HTMLDivElement>(null);
+
+    // Limpiar localStorage del mapa al montar el componente
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            // Limpiar todas las claves relacionadas con el mapa
+            const keysToRemove = [
+                'mapa_selectedEstacion',
+                'mapa_selectedMetric',
+                'mapa_leftSidebarOpen',
+                'mapa_rightSidebarOpen',
+                'mapa_chartViews',
+                'mapa_timeRangeFilters'
+            ];
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+        }
+    }, []);
 
     // Fetch estaciones desde el backend
     useEffect(() => {
@@ -148,46 +130,6 @@ export function MapaInteractivoPage() {
         );
         setFilteredEstaciones(filtered);
     }, [searchTerm, estaciones]);
-
-    // Persistir estado en localStorage
-    useEffect(() => {
-        saveToLocalStorage('mapa_selectedEstacion', selectedEstacion);
-    }, [selectedEstacion]);
-
-    useEffect(() => {
-        saveToLocalStorage('mapa_selectedMetric', selectedMetric);
-    }, [selectedMetric]);
-
-    useEffect(() => {
-        saveToLocalStorage('mapa_leftSidebarOpen', leftSidebarOpen);
-    }, [leftSidebarOpen]);
-
-    useEffect(() => {
-        saveToLocalStorage('mapa_rightSidebarOpen', rightSidebarOpen);
-    }, [rightSidebarOpen]);
-
-    useEffect(() => {
-        saveToLocalStorage('mapa_chartViews', chartViews);
-    }, [chartViews]);
-
-    useEffect(() => {
-        saveToLocalStorage('mapa_timeRangeFilters', timeRangeFilters);
-    }, [timeRangeFilters]);
-
-    // Restaurar métrica cuando se carga una estación guardada
-    useEffect(() => {
-        if (selectedEstacion && estaciones.length > 0) {
-            // Verificar que la estación guardada todavía existe
-            const exists = estaciones.find(e => e.id === selectedEstacion.id);
-            if (exists) {
-                checkAvailableMetrics(selectedEstacion);
-                setRightSidebarOpen(true);
-            } else {
-                // Si la estación ya no existe, limpiar la selección
-                setSelectedEstacion(null);
-            }
-        }
-    }, [estaciones]);
 
     // Función para determinar métricas disponibles usando el endpoint /tabs
     const checkAvailableMetrics = async (estacion: Estacion) => {
@@ -1270,13 +1212,13 @@ export function MapaInteractivoPage() {
                 {/* Header del sidebar */}
                 <div className="flex items-center justify-between p-4 border-b">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <Search className="w-5 h-5" />
-                        Buscar Estación
+                        <SlidersHorizontal className="w-5 h-5" />
+                        Filtros
                     </h2>
                     <button
                         onClick={() => setLeftSidebarOpen(false)}
                         className="hover:bg-gray-100 p-2 rounded-full transition-colors"
-                        title="Cerrar búsqueda"
+                        title="Cerrar filtros"
                     >
                         <X className="w-5 h-5 text-gray-600" />
                     </button>
@@ -1427,15 +1369,15 @@ export function MapaInteractivoPage() {
                 )}
             </div>
 
-            {/* BOTÓN FLOTANTE - Buscar estaciones */}
+            {/* BOTÓN FLOTANTE - Abrir filtros */}
             {!leftSidebarOpen && (
                 <div className="fixed top-20 left-4 z-[800] flex flex-col gap-2">
                     <button
                         className="shadow-2xl bg-white hover:bg-gray-100 text-gray-700 border-2 border-gray-300 w-14 h-14 rounded-full flex items-center justify-center transition-all cursor-pointer"
                         onClick={() => setLeftSidebarOpen(true)}
-                        title="Buscar estación"
+                        title="Filtros"
                     >
-                        <Search className="w-6 h-6" />
+                        <SlidersHorizontal className="w-6 h-6" />
                     </button>
                 </div>
             )}

@@ -16,7 +16,8 @@ import {
   Calendar,
   Tag,
   TrendingUp,
-  Maximize2
+  Maximize2,
+  SlidersHorizontal
 } from 'lucide-react';
 import {
   LineChart,
@@ -136,7 +137,7 @@ export function RecursosHidricosPage() {
   const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEntity, setSelectedEntity] = useState<EntidadAgua | null>(null);
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(true);
   const [entityData, setEntityData] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
@@ -322,18 +323,20 @@ export function RecursosHidricosPage() {
 
   return (
     <div className="flex flex-col sm:flex-row h-screen w-full overflow-hidden pt-[48px]">
-      {/* Toggle Button for Mobile (solo < 640px) */}
-      <button
-        onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-        className="sm:hidden fixed bottom-4 right-4 z-[60] bg-emerald-600 text-white p-3 rounded-full shadow-2xl hover:bg-emerald-700 transition-all"
-        aria-label="Toggle menu"
-      >
-        {isPanelCollapsed ? (
-          <Search className="w-5 h-5" />
-        ) : (
-          <X className="w-5 h-5" />
-        )}
-      </button>
+      {/* Toggle Button for Mobile (solo < 640px) - Oculto cuando hay entidad seleccionada */}
+      {!selectedEntity && (
+        <button
+          onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+          className="sm:hidden fixed bottom-4 right-4 z-[60] bg-emerald-600 text-white p-3 rounded-full shadow-2xl hover:bg-emerald-700 transition-all"
+          aria-label="Filtros"
+        >
+          {isPanelCollapsed ? (
+            <SlidersHorizontal className="w-5 h-5" />
+          ) : (
+            <X className="w-5 h-5" />
+          )}
+        </button>
+      )}
 
       {/* Left Sidebar Panel - Responsive */}
       <div className={`
@@ -526,8 +529,8 @@ export function RecursosHidricosPage() {
                 size="sm"
                 className="h-8 text-xs px-3"
               >
-                <Search className="w-4 h-4 mr-1.5" />
-                {isPanelCollapsed ? 'Mostrar' : 'Ocultar'} Filtros
+                <SlidersHorizontal className="w-4 h-4 mr-1.5" />
+                Filtros
               </Button>
               <Button
                 onClick={fetchEntities}

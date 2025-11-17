@@ -27,8 +27,6 @@ export const auth = getAuth(app);
 // Initialize Realtime Database
 export const database = getDatabase(app);
 
-console.log('[Firebase] Auth y Realtime Database inicializados correctamente. Persistencia: LOCAL (por defecto)');
-
 // Initialize Analytics (only on client-side)
 let analytics;
 if (typeof window !== 'undefined') {

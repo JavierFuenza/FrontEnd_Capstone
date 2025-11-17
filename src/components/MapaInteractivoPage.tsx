@@ -1,5 +1,5 @@
 // src/components/MapaInteractivoPage.tsx
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Fragment } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -101,14 +101,12 @@ export function MapaInteractivoPage() {
                 setLoading(true);
                 const API_BASE = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8000/';
                 const url = `${API_BASE}api/private/estaciones/`;
-                console.log('[MapaInteractivoPage] Fetching estaciones from:', url);
 
                 const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error('Error al cargar estaciones');
                 }
                 const data = await response.json();
-                console.log('[MapaInteractivoPage] Estaciones cargadas:', data.length);
                 setEstaciones(data);
                 setFilteredEstaciones(data);
             } catch (err) {
@@ -1007,7 +1005,7 @@ export function MapaInteractivoPage() {
                 );
             }
 
-            return <div className="space-y-4">{charts}</div>;
+            return <div className="space-y-4">{React.Children.toArray(charts)}</div>;
         }
 
         // Contaminantes (mp25, mp10, o3, so2, no2, co)
@@ -1096,7 +1094,7 @@ export function MapaInteractivoPage() {
                 );
             }
 
-            return <div className="space-y-4">{charts}</div>;
+            return <div className="space-y-4">{React.Children.toArray(charts)}</div>;
         }
 
         // Humedad, Radiación UV y Olas de Calor
@@ -1194,18 +1192,18 @@ export function MapaInteractivoPage() {
                 );
             }
 
-            return <div className="space-y-4">{charts}</div>;
+            return <div className="space-y-4">{React.Children.toArray(charts)}</div>;
         }
 
         return null;
     };
 
     return (
-        <div className="relative h-screen pt-16 overflow-hidden bg-gray-50">
+        <div className="relative h-screen overflow-hidden bg-gray-50 pt-[48px]">
 
             {/* LEFT SIDEBAR - Buscar + Filtros */}
             <div
-                className={`absolute top-16 left-0 h-full bg-white shadow-xl z-[900] transition-transform duration-300 flex flex-col
+                className={`absolute top-0 left-0 h-full bg-white shadow-xl z-[900] transition-transform duration-300 flex flex-col
                     ${leftSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                     w-full sm:w-96`}
             >
@@ -1311,10 +1309,11 @@ export function MapaInteractivoPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setShowGlosario(true)}
-                                    className="flex items-center gap-2"
-                                    title="Ver Glosario"
+                                    className="flex items-center gap-2 relative overflow-hidden bg-gradient-to-r from-emerald-50 via-emerald-100 to-emerald-50 border-emerald-300 text-emerald-700 hover:from-emerald-100 hover:via-emerald-200 hover:to-emerald-100 hover:border-emerald-400 hover:text-emerald-800 transition-all shadow-sm hover:shadow-md before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent before:translate-x-[-100%] before:animate-[shimmer_2s_infinite] hover:before:animate-none"
+                                    title="Ver Glosario de Términos"
                                 >
-                                    <BookOpen className="w-4 h-4" />
+                                    <BookOpen className="w-4 h-4 relative z-10" />
+                                    <span className="font-medium relative z-10">Glosario</span>
                                 </Button>
                                 <Button
                                     variant="ghost"
@@ -1371,13 +1370,14 @@ export function MapaInteractivoPage() {
 
             {/* BOTÓN FLOTANTE - Abrir filtros */}
             {!leftSidebarOpen && (
-                <div className="fixed top-20 left-4 z-[800] flex flex-col gap-2">
+                <div className="fixed top-[60px] left-4 z-[800] flex flex-col gap-2">
                     <button
-                        className="shadow-2xl bg-white hover:bg-gray-100 text-gray-700 border-2 border-gray-300 w-14 h-14 rounded-full flex items-center justify-center transition-all cursor-pointer"
+                        className="shadow-2xl bg-white hover:bg-gray-100 text-gray-700 border-2 border-gray-300 rounded-full flex items-center gap-2 px-4 py-3 transition-all cursor-pointer"
                         onClick={() => setLeftSidebarOpen(true)}
                         title="Filtros"
                     >
-                        <SlidersHorizontal className="w-6 h-6" />
+                        <SlidersHorizontal className="w-5 h-5" />
+                        <span className="font-medium text-sm">Filtros</span>
                     </button>
                 </div>
             )}

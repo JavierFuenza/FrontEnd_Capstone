@@ -19,7 +19,6 @@ export function ApiTokenSection() {
   useEffect(() => {
     // Listen to auth state changes
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      console.log('[ApiTokenSection] Auth state changed:', currentUser?.email || 'No user');
       setUser(currentUser);
       if (currentUser) {
         loadToken(currentUser);
@@ -46,8 +45,6 @@ export function ApiTokenSection() {
         return;
       }
 
-      console.log('[ApiTokenSection] Getting token for user:', targetUser.email);
-
       // Get fresh token
       const idToken = await targetUser.getIdToken();
       setToken(idToken);
@@ -57,7 +54,6 @@ export function ApiTokenSection() {
       expiryTime.setHours(expiryTime.getHours() + 1);
       setTokenExpiry(expiryTime);
 
-      console.log('[ApiTokenSection] Token obtained successfully');
       setLoading(false);
     } catch (err: any) {
       console.error('[ApiTokenSection] Error getting token:', err);

@@ -80,21 +80,16 @@ class AIExplanationService {
       }
 
       let data = await response.json();
-      console.log('🔍 Raw n8n response:', data);
 
       // If n8n returns an array, get the first item
       if (Array.isArray(data) && data.length > 0) {
-        console.log('📦 Unwrapping array, getting first item');
         data = data[0];
       }
 
       // Unwrap if n8n Output Parser wrapped it in "output" object
       if (data.output && typeof data.output === 'object') {
-        console.log('📦 Unwrapping "output" object');
         data = data.output;
       }
-
-      console.log('✅ Parsed data:', data);
 
       // Map response keys (explicacion + insights)
       const result = {
@@ -102,7 +97,6 @@ class AIExplanationService {
         insights: data.insights || [],
       };
 
-      console.log('✅ Final result:', result);
       return result;
 
     } catch (error) {

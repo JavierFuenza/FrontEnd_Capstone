@@ -16,7 +16,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     // Verificar si ya ha pasado tiempo suficiente de carga
     if (!loading && !user) {
       // El usuario no está autenticado
-      console.log("Usuario no autenticado, mostrar mensaje");
     }
   }, [loading, user]);
 

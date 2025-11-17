@@ -327,11 +327,14 @@ export function RecursosHidricosPage() {
       {!selectedEntity && (
         <button
           onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-          className="sm:hidden fixed bottom-4 right-4 z-[60] bg-emerald-600 text-white p-3 rounded-full shadow-2xl hover:bg-emerald-700 transition-all"
+          className="sm:hidden fixed bottom-4 right-4 z-[60] bg-emerald-600 text-white rounded-full shadow-2xl hover:bg-emerald-700 transition-all flex items-center gap-2 px-4 py-3"
           aria-label="Filtros"
         >
           {isPanelCollapsed ? (
-            <SlidersHorizontal className="w-5 h-5" />
+            <>
+              <SlidersHorizontal className="w-5 h-5" />
+              <span className="font-medium text-sm">Filtros</span>
+            </>
           ) : (
             <X className="w-5 h-5" />
           )}

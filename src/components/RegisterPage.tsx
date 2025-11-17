@@ -111,7 +111,6 @@ export function RegisterPage() {
       if (userCredential?.user) {
         try {
           await sendEmailVerification(userCredential.user);
-          console.log("Email de verificación enviado correctamente");
         } catch (emailError) {
           console.warn("No se pudo enviar el email de verificación:", emailError);
           // No bloqueamos el registro si falla el envío del email

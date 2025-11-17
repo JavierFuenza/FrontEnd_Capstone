@@ -42,7 +42,6 @@ export function useAuth() {
       }
     };
   }
-  console.log('[useAuth] AuthProvider found, user:', context.user?.email || 'none');
   return context;
 }
 
@@ -55,35 +54,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('[AuthProvider] Iniciando listener de auth state...');
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        console.log('[AuthProvider] Usuario detectado:', user.email, 'UID:', user.uid);
-      } else {
-        console.log('[AuthProvider] No hay usuario loggeado');
-      }
       setUser(user);
       setLoading(false);
     });
 
     return () => {
-      console.log('[AuthProvider] Limpiando listener de auth state');
       unsubscribe();
     };
   }, []);
 
   const signup = async (email: string, password: string, displayName: string) => {
-    console.log('[AuthContext] Iniciando registro...', { email, displayName });
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('[AuthContext] Usuario creado:', userCredential.user.uid);
 
       // Actualizar el perfil con el nombre de display
       if (userCredential.user) {
         await updateProfile(userCredential.user, {
           displayName: displayName
         });
-        console.log('[AuthContext] Perfil actualizado');
         // Forzar actualización del estado
         setUser({ ...userCredential.user, displayName });
       }
@@ -96,10 +85,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const login = async (email: string, password: string) => {
-    console.log('[AuthContext] Iniciando login...', { email });
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log('[AuthContext] Login exitoso:', result.user.uid);
     } catch (error) {
       console.error('[AuthContext] Error en login:', error);
       throw error;
@@ -107,10 +94,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = async () => {
-    console.log('[AuthContext] Cerrando sesión...');
     try {
       await signOut(auth);
-      console.log('[AuthContext] Sesión cerrada');
     } catch (error) {
       console.error('[AuthContext] Error en logout:', error);
       throw error;

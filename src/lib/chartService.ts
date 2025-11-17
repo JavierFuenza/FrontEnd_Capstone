@@ -55,7 +55,6 @@ export async function saveChart(
     };
 
     await set(newChartRef, chartToSave);
-    console.log('[ChartService] Gráfico guardado con ID:', newChartRef.key);
     return newChartRef.key!;
   } catch (error) {
     console.error('[ChartService] Error al guardar gráfico:', error);
@@ -97,7 +96,6 @@ export async function getUserCharts(userId: string): Promise<SavedChart[]> {
       );
     }
 
-    console.log(`[ChartService] Se encontraron ${charts.length} gráficos para el usuario`);
     return charts;
   } catch (error) {
     console.error('[ChartService] Error al obtener gráficos:', error);
@@ -112,7 +110,6 @@ export async function deleteChart(chartId: string): Promise<void> {
   try {
     const chartRef = ref(database, `${CHARTS_PATH}/${chartId}`);
     await remove(chartRef);
-    console.log('[ChartService] Gráfico eliminado:', chartId);
   } catch (error) {
     console.error('[ChartService] Error al eliminar gráfico:', error);
     throw new Error('No se pudo eliminar el gráfico. Por favor, intenta de nuevo.');
@@ -132,7 +129,6 @@ export async function updateChart(
       ...updates,
       updatedAt: serverTimestamp()
     });
-    console.log('[ChartService] Gráfico actualizado:', chartId);
   } catch (error) {
     console.error('[ChartService] Error al actualizar gráfico:', error);
     throw new Error('No se pudo actualizar el gráfico. Por favor, intenta de nuevo.');
@@ -164,7 +160,6 @@ export async function migrateLocalStorageCharts(userId: string): Promise<number>
 
     // Limpiar localStorage después de migrar
     localStorage.removeItem('graficos_savedCharts');
-    console.log(`[ChartService] Se migraron ${migratedCount} gráficos a Realtime Database`);
 
     return migratedCount;
   } catch (error) {

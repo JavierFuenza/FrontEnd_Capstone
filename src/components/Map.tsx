@@ -81,9 +81,10 @@ export function Map({ estaciones, selectedEstacion, onEstacionSelect, showZoomCo
           setTimeout(() => setIsLoading(false), 800);
         }}
       >
-        {showZoomControls && <ZoomControl position="topright" />}
+        {showZoomControls && <ZoomControl key="zoom-control" position="topright" />}
 
         <TileLayer
+          key="tile-layer"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           eventHandlers={{
@@ -91,9 +92,9 @@ export function Map({ estaciones, selectedEstacion, onEstacionSelect, showZoomCo
           }}
         />
 
-        {estaciones.map((estacion) => (
+        {estaciones.map((estacion, index) => (
           <Marker
-            key={estacion.id}
+            key={`marker-${estacion.id || index}`}
             position={[estacion.latitud, estacion.longitud]}
           >
             <Popup>
@@ -114,7 +115,7 @@ export function Map({ estaciones, selectedEstacion, onEstacionSelect, showZoomCo
             </Popup>
           </Marker>
         ))}
-        <MapUpdater selectedEstacion={selectedEstacion} />
+        <MapUpdater key="map-updater" selectedEstacion={selectedEstacion} />
       </MapContainer>
     </div>
   );

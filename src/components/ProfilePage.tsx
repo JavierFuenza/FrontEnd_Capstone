@@ -220,9 +220,21 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="pt-32 pb-16 min-h-screen px-4 bg-gray-50">
+    <div className="pt-32 pb-16 min-h-screen px-4 relative">
+      {/* Fondo con imagen optimizado */}
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat -z-10"
+        style={{
+          backgroundImage: 'url(/fondoanimado.png)',
+          filter: 'blur(3px)'
+        }}
+      />
+      {/* Overlay oscuro para mejorar contraste y legibilidad */}
+      <div className="fixed inset-0 bg-black/50 -z-10" />
+      <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/30 to-blue-900/30 -z-10" />
+
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-8 backdrop-blur-md bg-white/95 shadow-xl rounded-lg p-6 border-2 border-emerald-200/50">
           <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
           <p className="text-gray-600 mt-2">Gestiona tu información personal y configuración de cuenta</p>
         </div>
@@ -243,7 +255,7 @@ export function ProfilePage() {
         )}
 
         {/* Información del perfil */}
-        <Card className="mb-6">
+        <Card className="mb-6 backdrop-blur-sm bg-white/95 shadow-2xl border-2 border-emerald-200/50">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -354,7 +366,7 @@ export function ProfilePage() {
 
         {/* Cambiar contraseña */}
         {showPasswordChange && (
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-2 border-blue-200/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock className="w-5 h-5 text-emerald-600" />
@@ -480,7 +492,7 @@ export function ProfilePage() {
         )}
 
         {/* Información de la cuenta */}
-        <Card className="mt-6">
+        <Card className="mt-6 backdrop-blur-sm bg-white/95 shadow-2xl border-2 border-red-200/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Mail className="w-5 h-5 text-emerald-600" />

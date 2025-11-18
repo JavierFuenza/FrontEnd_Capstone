@@ -9,6 +9,7 @@ import { Map } from './Map';
 import { Badge } from "@/components/ui/badge";
 import { GlosarioModal } from './GlosarioModal';
 import { AIExplainButton } from './AIExplainButton';
+import { Toast } from './Toast';
 import html2canvas from 'html2canvas';
 
 interface MetricasDetalladas {
@@ -52,6 +53,7 @@ export function MapaInteractivoPage() {
     const [metricData, setMetricData] = useState<MetricData>({});
     const [loadingMetric, setLoadingMetric] = useState(false);
     const [availableMetrics, setAvailableMetrics] = useState<MetricType[]>([]);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
 
     // Filtros de métricas - estructura mejorada con categorías expandibles
     // Por defecto todas las métricas están habilitadas para mostrar todas las estaciones
@@ -550,7 +552,7 @@ export function MapaInteractivoPage() {
             link.click();
         } catch (error) {
             console.error('Error al descargar la información:', error);
-            alert('Hubo un error al descargar la imagen. Por favor, intenta nuevamente.');
+            setToast({ message: 'Hubo un error al descargar la imagen. Por favor, intenta nuevamente.', type: 'error' });
         }
     };
 
@@ -2010,6 +2012,15 @@ export function MapaInteractivoPage() {
 
             {/* Modal de Glosario */}
             <GlosarioModal isOpen={showGlosario} onClose={() => setShowGlosario(false)} />
+
+            {/* Toast Notifications */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 }

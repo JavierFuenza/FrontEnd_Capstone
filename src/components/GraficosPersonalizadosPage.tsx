@@ -8,6 +8,8 @@ import { Plus, Trash2, Loader2, BookOpen, Info, TrendingUp, AlertCircle, Downloa
 import { GlosarioModal } from './GlosarioModal';
 import { AnalisisCorrelacion } from './AnalisisCorrelacion';
 import { AIExplainButton } from './AIExplainButton';
+import { Toast } from './Toast';
+import { ConfirmDialog } from './ConfirmDialog';
 import html2canvas from 'html2canvas';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveChart, getUserCharts, deleteChart, migrateLocalStorageCharts } from '@/lib/chartService';
@@ -167,6 +169,8 @@ export function GraficosPageContent() {
 
   // Estado para búsqueda de entidades
   const [searchEntidad, setSearchEntidad] = useState('');
+  const [searchRegion, setSearchRegion] = useState('');
+  const [searchEstacion, setSearchEstacion] = useState('');
 
   // Estados de carga para AIRE
   const [loadingRegiones, setLoadingRegiones] = useState(false);
@@ -203,6 +207,17 @@ export function GraficosPageContent() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [chartName, setChartName] = useState('');
 
+  // Estado para toasts (notificaciones)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
+
+  // Estado para diálogos de confirmación
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  } | null>(null);
+
   // 1️⃣ Cargar regiones al inicio
   useEffect(() => {
     setLoadingRegiones(true);
@@ -228,15 +243,20 @@ export function GraficosPageContent() {
         // Intentar migrar gráficos de localStorage si existen
         const localCharts = localStorage.getItem('graficos_savedCharts');
         if (localCharts) {
-          const shouldMigrate = confirm(
-            'Se encontraron gráficos guardados localmente. ¿Deseas migrarlos a la nube?'
-          );
-          if (shouldMigrate) {
-            await migrateLocalStorageCharts(user.uid);
-            alert('Gráficos migrados exitosamente a la nube');
-          } else {
-            localStorage.removeItem('graficos_savedCharts');
-          }
+          setConfirmDialog({
+            title: 'Migrar gráficos a la nube',
+            message: 'Se encontraron gráficos guardados localmente. ¿Deseas migrarlos a la nube?',
+            type: 'info',
+            onConfirm: async () => {
+              await migrateLocalStorageCharts(user.uid);
+              setToast({ message: 'Gráficos migrados exitosamente a la nube', type: 'success' });
+              setConfirmDialog(null);
+              // Recargar gráficos después de migrar
+              const charts = await getUserCharts(user.uid);
+              setSavedCharts(charts as SavedChart[]);
+            }
+          });
+          return; // Salir temprano para mostrar el diálogo
         }
 
         // Cargar gráficos del usuario desde Firestore
@@ -244,7 +264,7 @@ export function GraficosPageContent() {
         setSavedCharts(charts as SavedChart[]);
       } catch (error) {
         console.error('Error cargando gráficos:', error);
-        alert('Error al cargar los gráficos guardados');
+        setToast({ message: 'Error al cargar los gráficos guardados', type: 'error' });
       } finally {
         setLoadingSavedCharts(false);
       }
@@ -529,7 +549,7 @@ export function GraficosPageContent() {
     if (dataSource === 'aire') {
       // Validación para datos de aire
       if (!formData.region || !formData.estacion || !formData.metrica || !formData.submetrica) {
-        alert("Por favor completa todos los campos");
+        setToast({ message: 'Por favor completa todos los campos', type: 'warning' });
         return;
       }
 
@@ -577,20 +597,20 @@ export function GraficosPageContent() {
         console.error("Error cargando datos:", err);
         // Remover la línea si falla
         setLines(prev => prev.filter(line => line.id !== lineId));
-        alert("Error al cargar los datos. Por favor intenta nuevamente.");
+        setToast({ message: 'Error al cargar los datos. Por favor intenta nuevamente.', type: 'error' });
       }
     } else {
       // Validación para datos de agua
       const { tipoEntidad, entidadAgua, metricaAgua, submetricaAgua } = formData;
 
       if (!tipoEntidad || !entidadAgua || !metricaAgua) {
-        alert('Por favor completa todos los campos requeridos');
+        setToast({ message: 'Por favor completa todos los campos requeridos', type: 'warning' });
         return;
       }
 
       // Si el tipo requiere submétrica y no está seleccionada
       if (submetricasAgua.length > 1 && !submetricaAgua) {
-        alert('Por favor selecciona una submétrica');
+        setToast({ message: 'Por favor selecciona una submétrica', type: 'warning' });
         return;
       }
 
@@ -639,7 +659,7 @@ export function GraficosPageContent() {
       } catch (error) {
         console.error('Error cargando datos de agua:', error);
         setLines(prev => prev.filter(line => line.id !== lineId));
-        alert('Error al cargar los datos de agua');
+        setToast({ message: 'Error al cargar los datos de agua', type: 'error' });
       }
     }
   };
@@ -674,7 +694,7 @@ export function GraficosPageContent() {
   // Función para guardar el gráfico actual
   const guardarGrafico = () => {
     if (lines.length === 0) {
-      alert("No hay líneas en el gráfico para guardar");
+      setToast({ message: 'No hay líneas en el gráfico para guardar', type: 'warning' });
       return;
     }
     setShowSaveModal(true);
@@ -683,12 +703,12 @@ export function GraficosPageContent() {
   // Función para confirmar el guardado con nombre
   const confirmarGuardado = async () => {
     if (!chartName.trim()) {
-      alert("Por favor ingresa un nombre para el gráfico");
+      setToast({ message: 'Por favor ingresa un nombre para el gráfico', type: 'warning' });
       return;
     }
 
     if (!user) {
-      alert("Debes iniciar sesión para guardar gráficos");
+      setToast({ message: 'Debes iniciar sesión para guardar gráficos', type: 'warning' });
       return;
     }
 
@@ -714,10 +734,10 @@ export function GraficosPageContent() {
       setSavedCharts(prev => [...prev, newChart]);
       setShowSaveModal(false);
       setChartName('');
-      alert(`Gráfico "${chartName}" guardado exitosamente en la nube`);
+      setToast({ message: `Gráfico "${chartName}" guardado exitosamente en la nube`, type: 'success' });
     } catch (error) {
       console.error('Error al guardar gráfico:', error);
-      alert('Error al guardar el gráfico. Por favor, intenta de nuevo.');
+      setToast({ message: 'Error al guardar el gráfico. Por favor, intenta de nuevo.', type: 'error' });
     }
   };
 
@@ -736,21 +756,26 @@ export function GraficosPageContent() {
 
   // Función para eliminar un gráfico guardado
   const eliminarGraficoGuardado = async (chartId: string) => {
-    if (!confirm("¿Estás seguro de eliminar este gráfico guardado?")) {
-      return;
-    }
+    setConfirmDialog({
+      title: '¿Estás seguro?',
+      message: '¿Estás seguro de eliminar este gráfico guardado? Esta acción no se puede deshacer.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          // Eliminar de Firestore
+          await deleteChart(chartId);
 
-    try {
-      // Eliminar de Firestore
-      await deleteChart(chartId);
-
-      // Actualizar estado local
-      setSavedCharts(prev => prev.filter(chart => chart.id !== chartId));
-      alert('Gráfico eliminado exitosamente');
-    } catch (error) {
-      console.error('Error al eliminar gráfico:', error);
-      alert('Error al eliminar el gráfico. Por favor, intenta de nuevo.');
-    }
+          // Actualizar estado local
+          setSavedCharts(prev => prev.filter(chart => chart.id !== chartId));
+          setToast({ message: 'Gráfico eliminado exitosamente', type: 'success' });
+          setConfirmDialog(null);
+        } catch (error) {
+          console.error('Error al eliminar gráfico:', error);
+          setToast({ message: 'Error al eliminar el gráfico. Por favor, intenta de nuevo.', type: 'error' });
+          setConfirmDialog(null);
+        }
+      }
+    });
   };
 
   // Función para parsear fechas en formato "YYYY Mes", "YYYY-MM", "YYYY-MM-DD" a Date
@@ -875,7 +900,9 @@ export function GraficosPageContent() {
           if (!periodoMap.has(periodo)) {
             periodoMap.set(periodo, { periodo });
           }
-          periodoMap.get(periodo)[line.id] = dato.valor;
+          // Convertir valores null/undefined a null explícitamente para mejor manejo
+          const valor = dato.valor;
+          periodoMap.get(periodo)[line.id] = (valor === null || valor === undefined || valor === '' || isNaN(Number(valor))) ? null : Number(valor);
         });
       }
     });
@@ -948,7 +975,7 @@ export function GraficosPageContent() {
       }, 'image/png');
     } catch (error) {
       console.error('Error al descargar el gráfico:', error);
-      alert('No se pudo descargar el gráfico. Por favor intenta nuevamente.');
+      setToast({ message: 'No se pudo descargar el gráfico. Por favor intenta nuevamente.', type: 'error' });
     }
   };
 
@@ -1059,17 +1086,42 @@ export function GraficosPageContent() {
                               metrica: "",
                               submetrica: ""
                             }));
+                            setSearchRegion(''); // Limpiar búsqueda al seleccionar
                           }}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecciona región..." />
                           </SelectTrigger>
-                          <SelectContent>
-                            {regiones.map((region) => (
-                              <SelectItem key={region.numero_region} value={region.numero_region.toString()}>
-                                {region.nombre_region}
-                              </SelectItem>
-                            ))}
+                          <SelectContent className="max-h-80">
+                            {/* Input de búsqueda dentro del dropdown */}
+                            <div className="sticky top-0 bg-white border-b p-2 z-10">
+                              <Input
+                                placeholder="Buscar región..."
+                                value={searchRegion}
+                                onChange={(e) => setSearchRegion(e.target.value)}
+                                onClick={(e) => e.stopPropagation()} // Evitar que se cierre el dropdown
+                                onKeyDown={(e) => e.stopPropagation()} // Evitar que las teclas cierren el dropdown
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            {/* Lista filtrada de regiones */}
+                            <div className="max-h-60 overflow-y-auto">
+                              {regiones
+                                .filter(r => r.nombre_region.toLowerCase().includes(searchRegion.toLowerCase()))
+                                .length > 0 ? (
+                                regiones
+                                  .filter(r => r.nombre_region.toLowerCase().includes(searchRegion.toLowerCase()))
+                                  .map((region) => (
+                                    <SelectItem key={region.numero_region} value={region.numero_region.toString()}>
+                                      {region.nombre_region}
+                                    </SelectItem>
+                                  ))
+                              ) : (
+                                <div className="p-4 text-center text-sm text-gray-500">
+                                  No se encontraron regiones
+                                </div>
+                              )}
+                            </div>
                           </SelectContent>
                         </Select>
                       )}
@@ -1095,17 +1147,44 @@ export function GraficosPageContent() {
                                 metrica: "",
                                 submetrica: ""
                               }));
+                              setSearchEstacion(''); // Limpiar búsqueda al seleccionar
                             }}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecciona estación..." />
                             </SelectTrigger>
-                            <SelectContent>
-                              {estaciones.map((estacion) => (
-                                <SelectItem key={estacion.id} value={estacion.nombre}>
-                                  {estacion.nombre}
-                                </SelectItem>
-                              ))}
+                            <SelectContent className="max-h-80">
+                              {/* Input de búsqueda dentro del dropdown - solo si hay más de 10 estaciones */}
+                              {estaciones.length > 10 && (
+                                <div className="sticky top-0 bg-white border-b p-2 z-10">
+                                  <Input
+                                    placeholder="Buscar estación..."
+                                    value={searchEstacion}
+                                    onChange={(e) => setSearchEstacion(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()} // Evitar que se cierre el dropdown
+                                    onKeyDown={(e) => e.stopPropagation()} // Evitar que las teclas cierren el dropdown
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                              )}
+                              {/* Lista filtrada de estaciones */}
+                              <div className="max-h-60 overflow-y-auto">
+                                {estaciones
+                                  .filter(e => e.nombre.toLowerCase().includes(searchEstacion.toLowerCase()))
+                                  .length > 0 ? (
+                                  estaciones
+                                    .filter(e => e.nombre.toLowerCase().includes(searchEstacion.toLowerCase()))
+                                    .map((estacion) => (
+                                      <SelectItem key={estacion.id} value={estacion.nombre}>
+                                        {estacion.nombre}
+                                      </SelectItem>
+                                    ))
+                                ) : (
+                                  <div className="p-4 text-center text-sm text-gray-500">
+                                    No se encontraron estaciones
+                                  </div>
+                                )}
+                              </div>
                             </SelectContent>
                           </Select>
                         )}
@@ -1325,8 +1404,22 @@ export function GraficosPageContent() {
                   className="w-full bg-emerald-600 hover:bg-emerald-700"
                   disabled={
                     dataSource === 'aire'
-                      ? !formData.submetrica
-                      : !(formData.entidadAgua && (metricasAgua.length === 1 || formData.metricaAgua) && (submetricasAgua.length <= 1 || formData.submetricaAgua))
+                      ? (
+                          // Para datos de aire: validar campos completados Y estados de carga
+                          !formData.submetrica ||
+                          loadingRegiones ||
+                          loadingEstaciones ||
+                          loadingMetricas ||
+                          loadingSubmetricas
+                        )
+                      : (
+                          // Para datos de agua: validar campos completados Y estados de carga
+                          !(formData.entidadAgua && (metricasAgua.length === 1 || formData.metricaAgua) && (submetricasAgua.length <= 1 || formData.submetricaAgua)) ||
+                          loadingTiposEntidad ||
+                          loadingEntidadesAgua ||
+                          loadingMetricasAgua ||
+                          loadingSubmetricasAgua
+                        )
                   }
                 >
                   <Plus className="w-4 h-4 mr-2" />
@@ -1582,6 +1675,7 @@ export function GraficosPageContent() {
                           strokeWidth={2}
                           dot={{ r: 3 }}
                           activeDot={{ r: 5 }}
+                          connectNulls={true}
                         />
                       ))}
                     </LineChart>
@@ -1739,6 +1833,26 @@ export function GraficosPageContent() {
 
       {/* Modal de Glosario */}
       <GlosarioModal isOpen={showGlosario} onClose={() => setShowGlosario(false)} />
+
+      {/* Toast Notifications */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Confirm Dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          type={confirmDialog.type}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </>
   );
 }

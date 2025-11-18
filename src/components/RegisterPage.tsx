@@ -140,8 +140,20 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="pt-32 pb-16 flex items-center justify-center min-h-screen px-4">
-      <Card className="w-full max-w-md">
+    <div className="pt-32 pb-16 flex items-center justify-center min-h-screen px-4 relative">
+      {/* Fondo con imagen optimizado */}
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat -z-10"
+        style={{
+          backgroundImage: 'url(/fondoanimado.png)',
+          filter: 'blur(3px)'
+        }}
+      />
+      {/* Overlay oscuro para mejorar contraste y legibilidad */}
+      <div className="fixed inset-0 bg-black/50 -z-10" />
+      <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/30 to-blue-900/30 -z-10" />
+
+      <Card className="w-full max-w-md backdrop-blur-md bg-white/95 shadow-2xl border-2 border-emerald-200/50">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Crear Cuenta</CardTitle>
           <CardDescription>Regístrate para obtener acceso completo a la plataforma</CardDescription>

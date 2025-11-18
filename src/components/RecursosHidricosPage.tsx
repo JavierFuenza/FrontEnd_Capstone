@@ -137,7 +137,13 @@ export function RecursosHidricosPage() {
   const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEntity, setSelectedEntity] = useState<EntidadAgua | null>(null);
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(true);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(() => {
+    // En desktop (>= 1024px) el sidebar está abierto por defecto
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return true;
+  });
   const [entityData, setEntityData] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
@@ -237,6 +243,20 @@ export function RecursosHidricosPage() {
     // Resetear a la primera página cuando cambien los filtros
     setCurrentPage(1);
   }, [selectedEntityType, searchQuery]);
+
+  useEffect(() => {
+    // Manejar cambios de tamaño de ventana para el sidebar
+    const handleResize = () => {
+      if (window.innerWidth >= 1024 && isPanelCollapsed) {
+        setIsPanelCollapsed(false);
+      } else if (window.innerWidth < 1024 && !isPanelCollapsed) {
+        setIsPanelCollapsed(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isPanelCollapsed]);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev => ({

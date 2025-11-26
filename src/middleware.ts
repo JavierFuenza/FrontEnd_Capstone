@@ -20,8 +20,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
     "default-src 'self'",
     // Script sources - Necesitamos unsafe-inline para Astro/Vite en dev mode
     // Agregado *.firebaseio.com para Firebase Realtime Database
+    // Agregado www.google.com y www.gstatic.com/recaptcha para Firebase App Check reCAPTCHA
     // TODO: Usar nonces o hashes en producción para mayor seguridad
-    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.googleapis.com https://*.firebaseapp.com https://*.firebaseio.com https://www.googletagmanager.com https://*.google-analytics.com https://ssl.google-analytics.com",
+    "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com https://www.googleapis.com https://*.firebaseapp.com https://*.firebaseio.com https://www.googletagmanager.com https://*.google-analytics.com https://ssl.google-analytics.com",
     // Style sources - Necesitamos unsafe-inline para Tailwind y componentes React
     "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com",
     // Image sources - Dominios específicos para OSM tiles, Firebase, etc.
@@ -29,9 +30,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // Font sources
     "font-src 'self' data: https://fonts.gstatic.com",
     // Connect sources para APIs y Firebase (incluye Realtime Database con WebSockets)
-    "connect-src 'self' https://observatorio.javierfuenzam.com https://*.firebaseapp.com https://*.googleapis.com https://*.firebase.com https://*.firebaseio.com wss://*.firebaseio.com https://www.googletagmanager.com https://www.google-analytics.com https://n8n.srv1105893.hstgr.cloud http://localhost:8000 ws://localhost:4321",
+    // Agregado www.google.com para reCAPTCHA de Firebase App Check
+    "connect-src 'self' https://observatorio.javierfuenzam.com https://*.firebaseapp.com https://*.googleapis.com https://*.firebase.com https://*.firebaseio.com wss://*.firebaseio.com https://www.googletagmanager.com https://www.google-analytics.com https://www.google.com https://n8n.srv1105893.hstgr.cloud http://localhost:8000 ws://localhost:4321",
     // Frame sources (Firebase Realtime Database necesita frames para long polling)
-    "frame-src 'self' https://*.firebaseapp.com https://*.firebaseio.com",
+    // Agregado www.google.com para reCAPTCHA de Firebase App Check
+    "frame-src 'self' https://*.firebaseapp.com https://*.firebaseio.com https://www.google.com https://recaptcha.google.com https://www.recaptcha.net",
     // Media sources
     "media-src 'self'",
     // Object, embed, and applet - bloquear completamente

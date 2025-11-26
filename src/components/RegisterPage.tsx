@@ -129,8 +129,18 @@ export function RegisterPage() {
         setError("El correo electrónico no es válido");
       } else if (err.code === 'auth/weak-password') {
         setError("La contraseña es muy débil. Usa al menos 6 caracteres");
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError("El registro con correo electrónico no está habilitado. Contacta al administrador del sistema");
       } else if (err.code === 'auth/configuration-not-found') {
         setError("⚠️ Firebase Authentication no está configurado. El administrador debe habilitar Email/Password en la consola de Firebase.");
+      } else if (err.code === 'auth/network-request-failed') {
+        setError("Error de conexión. Verifica tu conexión a internet e intenta nuevamente");
+      } else if (err.code === 'auth/too-many-requests') {
+        setError("Demasiados intentos fallidos. Por favor, espera unos minutos antes de intentar nuevamente");
+      } else if (err.code === 'auth/internal-error') {
+        setError("Error interno del servidor. Por favor, intenta nuevamente en unos momentos");
+      } else if (err.code === 'auth/firebase-app-check-token-is-invalid') {
+        setError("Error de verificación de seguridad. El administrador debe configurar Firebase App Check correctamente o deshabilitarlo en la consola de Firebase");
       } else {
         setError("No se pudo crear la cuenta. Por favor, intenta nuevamente");
       }

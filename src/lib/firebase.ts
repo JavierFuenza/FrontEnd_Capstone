@@ -3,6 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 import { getDatabase } from 'firebase/database';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -19,6 +20,26 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Initialize App Check (only on client-side)
+if (typeof window !== 'undefined') {
+  try {
+    // En desarrollo, usar debug token. En producción, usar reCAPTCHA v3
+    if (import.meta.env.DEV) {
+      // Modo debug para desarrollo local
+      // @ts-ignore
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN || true;
+    }
+
+    initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(import.meta.env.PUBLIC_FIREBASE_APP_CHECK_KEY || ''),
+      isTokenAutoRefreshEnabled: true
+    });
+    console.log('[Firebase] App Check initialized successfully');
+  } catch (error) {
+    console.error('[Firebase] Error initializing App Check:', error);
+  }
+}
 
 // Initialize Authentication
 // Firebase usa browserLocalPersistence por defecto, por lo que la sesión persiste automáticamente

@@ -24,20 +24,45 @@ const app = initializeApp(firebaseConfig);
 // Initialize App Check (only on client-side)
 if (typeof window !== 'undefined') {
   try {
-    // En desarrollo, usar debug token. En producción, usar reCAPTCHA v3
     if (import.meta.env.DEV) {
-      // Modo debug para desarrollo local
-      // @ts-ignore
-      self.FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN || true;
+      // DESARROLLO: Usar debug token
+      const debugToken = import.meta.env.PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN;
+
+      if (debugToken && debugToken !== 'true') {
+        // @ts-ignore
+        self.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
+        console.log('[Firebase] App Check en modo DEBUG - Token configurado');
+      } else {
+        console.warn('[Firebase] ⚠️ DEBUG TOKEN NO CONFIGURADO');
+        console.warn('Para obtener tu debug token:');
+        console.warn('1. Abre: https://console.firebase.google.com/project/proyecto-ine-4cd29/appcheck/apps');
+        console.warn('2. Selecciona tu app web');
+        console.warn('3. En la consola del navegador, copia el debug token que aparece');
+        console.warn('4. Agrega PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN=tu-token-aqui al archivo .env');
+      }
+    }
+
+    // Inicializar App Check con el provider apropiado
+    const recaptchaKey = import.meta.env.PUBLIC_FIREBASE_APP_CHECK_KEY;
+
+    if (!recaptchaKey) {
+      console.error('[Firebase] ❌ PUBLIC_FIREBASE_APP_CHECK_KEY no configurado en .env');
+      throw new Error('App Check Key no configurado');
     }
 
     initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(import.meta.env.PUBLIC_FIREBASE_APP_CHECK_KEY || ''),
+      provider: new ReCaptchaV3Provider(recaptchaKey),
       isTokenAutoRefreshEnabled: true
     });
-    console.log('[Firebase] App Check initialized successfully');
+
+    if (import.meta.env.DEV) {
+      console.log('[Firebase] ✅ App Check inicializado en modo DESARROLLO');
+    } else {
+      console.log('[Firebase] ✅ App Check inicializado en modo PRODUCCIÓN');
+    }
   } catch (error) {
-    console.error('[Firebase] Error initializing App Check:', error);
+    console.error('[Firebase] ❌ Error al inicializar App Check:', error);
+    console.error('Revisa la configuración en Firebase Console y tu archivo .env');
   }
 }
 
